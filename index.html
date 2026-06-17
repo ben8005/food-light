@@ -146,6 +146,10 @@
   <div class="pane" id="pane-scan">
     <button class="btn" id="scanBtn" style="margin-top:10px" onclick="toggleScan()">📷 開始掃描條碼</button>
     <div id="scanner"></div>
+    <div class="search-row" style="margin-top:12px">
+      <input id="manualCode" inputmode="numeric" placeholder="或手動輸入條碼數字">
+      <button class="btn" style="width:auto;padding:12px 18px" onclick="lookupManual()">查詢</button>
+    </div>
   </div>
 
   <!-- 常吃清單 -->
@@ -514,23 +518,14 @@ async function toggleScan() {
     let msg = err.message || String(err);
     if (/NotAllowed|Permission/i.test(msg)) msg = "相機權限被拒，請到瀏覽器設定允許相機。";
     else if (/NotFound|NotReadable|Track/i.test(msg)) msg = "找不到可用的相機。";
-    $("status").innerHTML = '<p class="err">無法掃描：' + msg + '</p>';
+    $("status").innerHTML = '<p class="err">無法掃描：' + msg + '（可改用下方手動輸入條碼）</p>';
     $("scanBtn").textContent = "📷 開始掃描條碼"; scanner = null;
-    showManualBarcode();
   }
 }
-// 備援：手動輸入條碼數字
-function showManualBarcode() {
-  const box = document.createElement("div");
-  box.className = "search-row"; box.style.marginTop = "10px";
-  box.innerHTML = '<input id="manualCode" inputmode="numeric" placeholder="或手動輸入條碼數字">' +
-    '<button class="btn" style="width:auto;padding:12px 18px">查詢</button>';
-  box.querySelector("button").onclick = () => {
-    const c = $("manualCode").value.trim();
-    if (c) onScan(c);
-  };
-  $("scanner").innerHTML = "";
-  $("scanner").appendChild(box);
+// 手動輸入條碼數字
+function lookupManual() {
+  const c = $("manualCode").value.trim();
+  if (c) onScan(c);
 }
 function stopScan() {
   if (scanner) { try { scanner.stop().then(()=>scanner.clear()).catch(()=>{}); } catch(e){} scanner = null; }
