@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#16a34a">
+<title>食物紅綠燈</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --green: #16a34a; --yellow: #eab308; --red: #dc2626;
+    --bg: #f6f7f9; --card: #fff; --ink: #1f2937; --sub: #6b7280; --line: #e5e7eb;
+  }
+  body {
+    margin: 0; font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    background: var(--bg); color: var(--ink);
+    padding: 16px; max-width: 520px; margin: 0 auto; padding-bottom: 48px;
+  }
+  h1 { font-size: 20px; margin: 4px 0 16px; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .card {
+    background: var(--card); border-radius: 16px; padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 16px; border: 1px solid var(--line);
+  }
+  .total-card { text-align: center; }
+  .total-num { font-size: 40px; font-weight: 700; line-height: 1.1; }
+  .total-label { color: var(--sub); font-size: 13px; margin-top: 4px; }
+  .goal-row { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; font-size: 13px; color: var(--sub); }
+  .goal-row input { width: 70px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; text-align: center; font-size: 13px; }
+  .bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 12px; }
+  .bar > div { height: 100%; background: var(--green); transition: width .4s, background .4s; }
+  .btn {
+    display: block; width: 100%; padding: 16px; border: none; border-radius: 14px;
+    background: var(--green); color: #fff; font-size: 17px; font-weight: 600;
+    cursor: pointer; text-align: center;
+  }
+  .btn:active { opacity: .85; }
+  .btn.sec { background: #fff; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
+  input[type=file] { display: none; }
+  .preview { width: 100%; border-radius: 12px; margin-bottom: 12px; display: block; }
+  .light-banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; font-weight: 700; color: #fff; margin-bottom: 12px; }
+  .light-green { background: var(--green); } .light-yellow { background: var(--yellow); } .light-red { background: var(--red); }
+  .food-name { font-size: 18px; font-weight: 700; margin: 0 0 2px; }
+  .portion { color: var(--sub); font-size: 13px; margin: 0 0 12px; }
+  .kcal-big { font-size: 32px; font-weight: 700; }
+  .kcal-unit { font-size: 14px; color: var(--sub); font-weight: 400; }
+  .macros { display: flex; gap: 8px; margin: 12px 0; }
+  .macro { flex: 1; background: var(--bg); border-radius: 10px; padding: 8px; text-align: center; }
+  .macro b { display: block; font-size: 16px; } .macro span { font-size: 11px; color: var(--sub); }
+  .reason { font-size: 13px; color: var(--sub); line-height: 1.5; background: var(--bg); padding: 10px 12px; border-radius: 10px; }
+  .log-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .log-item:last-child { border-bottom: none; }
+  .log-item img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
+  .log-item .name { flex: 1; font-size: 14px; }
+  .log-item .name small { display: block; color: var(--sub); font-size: 12px; }
+  .log-item .kc { font-weight: 600; font-size: 14px; }
+  .log-item .del { color: var(--red); background: none; border: none; font-size: 18px; cursor: pointer; padding: 4px 8px; }
+  .muted { color: var(--sub); font-size: 13px; text-align: center; padding: 12px 0; }
+  .spin { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: r .8s linear infinite; vertical-align: -3px; }
+  @keyframes r { to { transform: rotate(360deg); } }
+  .keyrow { display: flex; gap: 8px; }
+  .keyrow input { flex: 1; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
+  details summary { cursor: pointer; color: var(--sub); font-size: 13px; }
+  .err { color: var(--red); font-size: 13px; margin-top: 8px; }
+  .section-title { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
+</style>
+</head>
+<body>
+
+<h1><span class="dot" style="background:var(--green)"></span><span class="dot" style="background:var(--yellow)"></span><span class="dot" style="background:var(--red)"></span> 食物紅綠燈</h1>
+
+<!-- 當天總熱量 -->
+<div class="card total-card">
+  <div class="total-num" id="totalKcal">0</div>
+  <div class="total-label" id="todayLabel">今天攝取熱量 (kcal)</div>
+  <div class="bar"><div id="goalBar" style="width:0%"></div></div>
+  <div class="goal-row">
+    每日目標 <input type="number" id="goalInput" value="1500"> kcal
+  </div>
+</div>
+
+<!-- 拍照/上傳 -->
+<div class="card">
+  <label class="btn" for="fileInput">📷 拍照 / 上傳食物照片</label>
+  <input type="file" id="fileInput" accept="image/*" capture="environment">
+  <div id="status"></div>
+  <div id="result"></div>
+</div>
+
+<!-- 今日記錄 -->
+<div class="card">
+  <p class="section-title">今日記錄</p>
+  <div id="log"><p class="muted">還沒有記錄，拍一張開始吧！</p></div>
+</div>
+
+<!-- 設定 -->
+<div class="card">
+  <details>
+    <summary>⚙️ 設定 OpenAI API 金鑰</summary>
+    <p class="muted" style="text-align:left">金鑰只存在這支手機/瀏覽器，不會上傳到任何地方。<br>去 platform.openai.com → API keys 申請。</p>
+    <div class="keyrow">
+      <input type="password" id="apiKey" placeholder="sk-...">
+      <button class="btn sec" style="width:auto;padding:12px 16px" onclick="saveKey()">儲存</button>
+    </div>
+    <div id="keyMsg" class="muted" style="text-align:left"></div>
+  </details>
+</div>
+
+<script>
+const MODEL = "gpt-4o-mini";
+const $ = id => document.getElementById(id);
+
+// ---- 狀態 ----
+function todayKey() {
+  const d = new Date();
+  return "fl-" + d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
+}
+function loadLog() { try { return JSON.parse(localStorage.getItem(todayKey()) || "[]"); } catch { return []; } }
+function saveLog(arr) { localStorage.setItem(todayKey(), JSON.stringify(arr)); }
+
+// ---- 設定 ----
+function saveKey() {
+  const k = $("apiKey").value.trim();
+  if (k) { localStorage.setItem("fl-key", k); $("keyMsg").textContent = "✅ 已儲存"; }
+  else { localStorage.removeItem("fl-key"); $("keyMsg").textContent = "已清除"; }
+}
+function getKey() { return localStorage.getItem("fl-key") || ""; }
+
+// ---- 目標 ----
+$("goalInput").value = localStorage.getItem("fl-goal") || 1500;
+$("goalInput").addEventListener("input", () => {
+  localStorage.setItem("fl-goal", $("goalInput").value || 1500);
+  render();
+});
+
+// ---- 渲染 ----
+function render() {
+  const log = loadLog();
+  const total = log.reduce((s, x) => s + (x.kcal || 0), 0);
+  const goal = parseInt($("goalInput").value) || 1500;
+  $("totalKcal").textContent = total;
+  const pct = Math.min(100, Math.round(total / goal * 100));
+  const bar = $("goalBar");
+  bar.style.width = pct + "%";
+  bar.style.background = total > goal ? "var(--red)" : (total > goal*0.8 ? "var(--yellow)" : "var(--green)");
+
+  const box = $("log");
+  if (!log.length) { box.innerHTML = '<p class="muted">還沒有記錄，拍一張開始吧！</p>'; return; }
+  box.innerHTML = "";
+  log.forEach((x, i) => {
+    const row = document.createElement("div");
+    row.className = "log-item";
+    row.innerHTML =
+      (x.thumb ? `<img src="${x.thumb}">` : "") +
+      `<div class="name">${x.name} <span class="dot" style="background:var(--${x.color})"></span><small>${x.portion||""}</small></div>` +
+      `<div class="kc">${x.kcal} kcal</div>`;
+    const del = document.createElement("button");
+    del.className = "del"; del.textContent = "✕";
+    del.onclick = () => { const l = loadLog(); l.splice(i,1); saveLog(l); render(); };
+    row.appendChild(del);
+    box.appendChild(row);
+  });
+}
+
+// ---- 縮圖 ----
+function makeThumb(dataUrl, size) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      const scale = size / Math.max(img.width, img.height);
+      c.width = img.width*scale; c.height = img.height*scale;
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      res(c.toDataURL("image/jpeg", 0.6));
+    };
+    img.src = dataUrl;
+  });
+}
+
+// ---- 主流程：選照片 ----
+$("fileInput").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  $("result").innerHTML = "";
+  const key = getKey();
+  if (!key) { $("status").innerHTML = '<p class="err">請先到下方「設定」填入 OpenAI API 金鑰。</p>'; return; }
+
+  // 讀成 dataURL
+  const dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); });
+  // 壓縮後送 API（省流量/費用）
+  const sendUrl = await makeThumb(dataUrl, 768);
+
+  $("status").innerHTML = '<p class="muted"><span class="spin"></span> AI 辨識中…</p>';
+
+  try {
+    const data = await recognize(sendUrl, key);
+    $("status").innerHTML = "";
+    showResult(data, await makeThumb(dataUrl, 120));
+  } catch (err) {
+    $("status").innerHTML = '<p class="err">辨識失敗：' + err.message + '</p>';
+  }
+  e.target.value = "";
+});
+
+// ---- 呼叫 OpenAI ----
+async function recognize(imageUrl, key) {
+  const prompt =
+`你是營養師。看這張食物照片，估算其營養並以減重角度給紅綠黃燈。
+只回 JSON，不要任何其他文字，格式：
+{"name":"食物名稱(繁體中文)","portion":"估計份量描述","kcal":整數熱量,"protein":蛋白質克數,"fat":脂肪克數,"carb":碳水克數,"color":"green或yellow或red","reason":"一句話說明燈號原因(繁體中文,20字內)"}
+
+燈號標準(減重導向)：
+- green綠：低熱量密度、高纖或高蛋白(蔬菜、水煮蛋、無糖優格、瘦肉、清湯)
+- yellow黃：中等(白飯、麵、水果、堅果適量)
+- red紅：高熱量密度/高糖高油(炸物、甜點、含糖飲料、加工肉、奶油類)
+若照片不是食物，name填"非食物"，kcal填0。`;
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 400,
+      response_format: { type: "json_object" },
+      messages: [{
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          { type: "image_url", image_url: { url: imageUrl, detail: "low" } }
+        ]
+      }]
+    })
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    if (res.status === 401) throw new Error("金鑰無效，請檢查設定。");
+    if (res.status === 429) throw new Error("額度不足或太頻繁，請到 OpenAI 帳戶儲值。");
+    throw new Error("HTTP " + res.status + " " + t.slice(0,120));
+  }
+  const j = await res.json();
+  return JSON.parse(j.choices[0].message.content);
+}
+
+// ---- 顯示結果並存檔 ----
+function showResult(d, thumb) {
+  const colors = { green:"綠燈", yellow:"黃燈", red:"紅燈" };
+  const labels = { green:"放心吃 👍", yellow:"適量 ⚠️", red:"少吃 🚫" };
+  const c = ["green","yellow","red"].includes(d.color) ? d.color : "yellow";
+  $("result").innerHTML =
+    `<div class="light-banner light-${c}"><span style="font-size:22px">${c==='green'?'🟢':c==='yellow'?'🟡':'🔴'}</span> ${colors[c]}・${labels[c]}</div>
+     <p class="food-name">${d.name}</p>
+     <p class="portion">${d.portion||""}</p>
+     <div class="kcal-big">${d.kcal||0} <span class="kcal-unit">kcal</span></div>
+     <div class="macros">
+       <div class="macro"><b>${d.protein||0}g</b><span>蛋白質</span></div>
+       <div class="macro"><b>${d.fat||0}g</b><span>脂肪</span></div>
+       <div class="macro"><b>${d.carb||0}g</b><span>碳水</span></div>
+     </div>
+     <p class="reason">💡 ${d.reason||""}</p>
+     <button class="btn" id="addBtn" style="margin-top:12px">＋ 加入今日記錄</button>`;
+  $("addBtn").onclick = () => {
+    const log = loadLog();
+    log.push({ name:d.name, portion:d.portion, kcal:d.kcal||0, color:c, thumb });
+    saveLog(log);
+    $("result").innerHTML = "";
+    $("status").innerHTML = '<p class="muted">✅ 已加入記錄</p>';
+    setTimeout(()=>$("status").innerHTML="", 1500);
+    render();
+  };
+}
+
+// init
+$("apiKey").value = "";
+render();
+</script>
+</body>
+</html>
