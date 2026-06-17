@@ -398,30 +398,67 @@ async function recognize(imageUrl, key) {
 }
 
 // =================== 名稱搜尋（Open Food Facts）===================
+// 帶逾時的 fetch（避免端點卡住）
+async function fetchJSON(url, ms) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms || 8000);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const ct = r.headers.get("content-type") || "";
+    if (!ct.includes("json")) throw new Error("非 JSON 回應");
+    return await r.json();
+  } finally { clearTimeout(timer); }
+}
+
+// 新版搜尋服務（Search-a-licious），回傳 hits
+async function searchViaSAL(q) {
+  const url = "https://search.openfoodfacts.org/search?q=" + encodeURIComponent(q) +
+    "&page_size=15&fields=product_name,product_name_zh,brands,nutriments,nutriscore_grade,image_small_url,code";
+  const j = await fetchJSON(url, 8000);
+  return j.hits || [];
+}
+// 舊版備援端點
+async function searchViaCGI(q) {
+  const url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(q) +
+    "&search_simple=1&action=process&json=1&page_size=15" +
+    "&fields=product_name,product_name_zh,brands,nutriments,nutriscore_grade,image_small_url,code";
+  const j = await fetchJSON(url, 9000);
+  return j.products || [];
+}
+
 async function doSearch() {
   const q = $("searchInput").value.trim();
   if (!q) return;
   $("searchResults").innerHTML = '<p class="muted"><span class="spin" style="border-color:#ccc;border-top-color:#666"></span> 搜尋中…</p>';
-  try {
-    const url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(q) +
-      "&search_simple=1&action=process&json=1&page_size=12" +
-      "&fields=product_name,product_name_zh,brands,nutriments,nutriscore_grade,image_small_url,code";
-    const r = await fetch(url);
-    const j = await r.json();
-    const items = (j.products || []).map(parseProduct).filter(p => p.per100.kcal > 0);
-    if (!items.length) { $("searchResults").innerHTML = '<p class="muted">查無結果，可改用拍照或手動新增常吃。</p>'; return; }
-    $("searchResults").innerHTML = "";
-    items.forEach(p => {
-      const el = document.createElement("div");
-      el.className = "ritem";
-      el.innerHTML = (p.thumb ? `<img src="${p.thumb}">` : `<div style="width:40px"></div>`) +
-        `<div class="t">${p.name}<small>每100g約 ${p.per100.kcal} kcal</small></div>`;
-      el.onclick = () => setupResultGrams(p);
-      $("searchResults").appendChild(el);
-    });
-  } catch (err) {
-    $("searchResults").innerHTML = '<p class="err">搜尋失敗，請檢查網路。</p>';
+
+  let raw = [], errMsg = "";
+  // 先試新版，失敗再退回舊版；兩個都掛才算失敗
+  try { raw = await searchViaSAL(q); }
+  catch (e1) {
+    try { raw = await searchViaCGI(q); }
+    catch (e2) { errMsg = (e2.name === "AbortError" || e1.name === "AbortError") ? "伺服器逾時" : "連線失敗"; }
   }
+
+  if (errMsg) {
+    $("searchResults").innerHTML = '<p class="err">搜尋暫時無法使用（' + errMsg +
+      '）。<br>可稍後再試，或改用「拍照」「條碼」「＋新增常吃」。</p>';
+    return;
+  }
+  const items = raw.map(parseProduct).filter(p => p.per100.kcal > 0);
+  if (!items.length) {
+    $("searchResults").innerHTML = '<p class="muted">查無含營養資料的結果，試試換個關鍵字（或用英文），或改用拍照／手動新增常吃。</p>';
+    return;
+  }
+  $("searchResults").innerHTML = "";
+  items.forEach(p => {
+    const el = document.createElement("div");
+    el.className = "ritem";
+    el.innerHTML = (p.thumb ? `<img src="${p.thumb}">` : `<div style="width:40px"></div>`) +
+      `<div class="t">${p.name}<small>每100g約 ${p.per100.kcal} kcal</small></div>`;
+    el.onclick = () => setupResultGrams(p);
+    $("searchResults").appendChild(el);
+  });
 }
 function parseProduct(p) {
   const n = p.nutriments || {};
@@ -444,25 +481,56 @@ function parseProduct(p) {
 let scanner = null;
 function loadScript(src) {
   return new Promise((res, rej) => {
-    if (window.Html5Qrcode) return res();
-    const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej;
+    const s = document.createElement("script"); s.src = src; s.onload = res;
+    s.onerror = () => rej(new Error("script load error"));
     document.head.appendChild(s);
   });
+}
+// 確保 Html5Qrcode 真的載入（指定版本與檔名，失敗換備援 CDN）
+async function ensureScanLib() {
+  if (window.Html5Qrcode) return;
+  const cdns = [
+    "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js",
+    "https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"
+  ];
+  for (const url of cdns) {
+    try { await loadScript(url); if (window.Html5Qrcode) return; } catch (e) {}
+  }
+  if (!window.Html5Qrcode) throw new Error("掃描套件載入失敗（可能無網路或被擋）");
 }
 async function toggleScan() {
   if (scanner) { stopScan(); return; }
   $("status").innerHTML = ""; $("result").innerHTML = "";
   $("scanBtn").textContent = "載入中…";
   try {
-    await loadScript("https://unpkg.com/html5-qrcode");
+    await ensureScanLib();
+    $("scanBtn").textContent = "啟動相機…";
     scanner = new Html5Qrcode("scanner");
-    await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 150 } },
+    await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 260, height: 160 } },
       onScan, () => {});
     $("scanBtn").textContent = "⏹ 停止掃描";
+    $("status").innerHTML = '<p class="muted">把條碼對準框內…</p>';
   } catch (err) {
-    $("status").innerHTML = '<p class="err">無法開啟相機掃描：' + (err.message||err) + '</p>';
+    let msg = err.message || String(err);
+    if (/NotAllowed|Permission/i.test(msg)) msg = "相機權限被拒，請到瀏覽器設定允許相機。";
+    else if (/NotFound|NotReadable|Track/i.test(msg)) msg = "找不到可用的相機。";
+    $("status").innerHTML = '<p class="err">無法掃描：' + msg + '</p>';
     $("scanBtn").textContent = "📷 開始掃描條碼"; scanner = null;
+    showManualBarcode();
   }
+}
+// 備援：手動輸入條碼數字
+function showManualBarcode() {
+  const box = document.createElement("div");
+  box.className = "search-row"; box.style.marginTop = "10px";
+  box.innerHTML = '<input id="manualCode" inputmode="numeric" placeholder="或手動輸入條碼數字">' +
+    '<button class="btn" style="width:auto;padding:12px 18px">查詢</button>';
+  box.querySelector("button").onclick = () => {
+    const c = $("manualCode").value.trim();
+    if (c) onScan(c);
+  };
+  $("scanner").innerHTML = "";
+  $("scanner").appendChild(box);
 }
 function stopScan() {
   if (scanner) { try { scanner.stop().then(()=>scanner.clear()).catch(()=>{}); } catch(e){} scanner = null; }
@@ -473,9 +541,8 @@ async function onScan(code) {
   stopScan();
   $("status").innerHTML = '<p class="muted"><span class="spin" style="border-color:#ccc;border-top-color:#666"></span> 查詢條碼 ' + code + '…</p>';
   try {
-    const r = await fetch("https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(code) +
-      ".json?fields=product_name,product_name_zh,nutriments,nutriscore_grade,image_small_url,code");
-    const j = await r.json();
+    const j = await fetchJSON("https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(code) +
+      ".json?fields=product_name,product_name_zh,nutriments,nutriscore_grade,image_small_url,code", 8000);
     if (j.status !== 1) { $("status").innerHTML = '<p class="err">資料庫查無此條碼，可改用搜尋或手動新增。</p>'; return; }
     $("status").innerHTML = "";
     setupResultGrams(parseProduct(j.product));
