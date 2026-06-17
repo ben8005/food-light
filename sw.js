@@ -1,4 +1,4 @@
-const CACHE = "fl-v5";
+const CACHE = "fl-v6";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon.svg"];
 
 self.addEventListener("install", e => {
@@ -12,17 +12,15 @@ self.addEventListener("activate", e => {
   );
 });
 
+// 網路優先：有網路一律拿最新版，沒網路才用快取（離線仍可開）
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
-  // 只快取自家檔案；OpenAI API 等外部請求一律走網路
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
   e.respondWith(
-    caches.match(e.request).then(cached =>
-      cached || fetch(e.request).then(resp => {
-        const copy = resp.clone();
-        caches.open(CACHE).then(c => c.put(e.request, copy));
-        return resp;
-      }).catch(() => caches.match("./index.html"))
-    )
+    fetch(e.request).then(resp => {
+      const copy = resp.clone();
+      caches.open(CACHE).then(c => c.put(e.request, copy));
+      return resp;
+    }).catch(() => caches.match(e.request).then(r => r || caches.match("./index.html")))
   );
 });
