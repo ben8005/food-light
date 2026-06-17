@@ -1,0 +1,14 @@
+{
+  "name": "食物紅綠燈",
+  "short_name": "食物紅綠燈",
+  "description": "拍照辨識食物營養，紅綠黃燈幫你減重",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f7f9",
+  "theme_color": "#16a34a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

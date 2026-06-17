@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="食物紅綠燈">
 <meta name="theme-color" content="#16a34a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
 <title>食物紅綠燈</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -30,6 +33,7 @@
   .goal-row input { width: 70px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; text-align: center; font-size: 13px; }
   .bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 12px; }
   .bar > div { height: 100%; background: var(--green); transition: width .4s, background .4s; }
+  .back-today { margin-top: 10px; font-size: 13px; color: var(--green); background: none; border: none; cursor: pointer; text-decoration: underline; display: none; }
   .btn {
     display: block; width: 100%; padding: 16px; border: none; border-radius: 14px;
     background: var(--green); color: #fff; font-size: 17px; font-weight: 600;
@@ -38,13 +42,15 @@
   .btn:active { opacity: .85; }
   .btn.sec { background: #fff; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
   input[type=file] { display: none; }
-  .preview { width: 100%; border-radius: 12px; margin-bottom: 12px; display: block; }
   .light-banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; font-weight: 700; color: #fff; margin-bottom: 12px; }
   .light-green { background: var(--green); } .light-yellow { background: var(--yellow); } .light-red { background: var(--red); }
-  .food-name { font-size: 18px; font-weight: 700; margin: 0 0 2px; }
-  .portion { color: var(--sub); font-size: 13px; margin: 0 0 12px; }
-  .kcal-big { font-size: 32px; font-weight: 700; }
-  .kcal-unit { font-size: 14px; color: var(--sub); font-weight: 400; }
+  .name-input { font-size: 18px; font-weight: 700; width: 100%; border: none; border-bottom: 1px dashed var(--line); padding: 2px 0; margin-bottom: 8px; background: transparent; color: var(--ink); }
+  .portion-row { display: flex; gap: 8px; margin: 10px 0; }
+  .portion-row button { flex: 1; padding: 8px; border: 1px solid var(--line); background: #fff; border-radius: 10px; font-size: 14px; cursor: pointer; color: var(--sub); }
+  .portion-row button.on { background: var(--green); color: #fff; border-color: var(--green); font-weight: 600; }
+  .kcal-edit { display: flex; align-items: baseline; gap: 6px; }
+  .kcal-edit input { font-size: 32px; font-weight: 700; width: 120px; border: none; border-bottom: 2px solid var(--line); padding: 2px 0; color: var(--ink); background: transparent; }
+  .kcal-unit { font-size: 14px; color: var(--sub); }
   .macros { display: flex; gap: 8px; margin: 12px 0; }
   .macro { flex: 1; background: var(--bg); border-radius: 10px; padding: 8px; text-align: center; }
   .macro b { display: block; font-size: 16px; } .macro span { font-size: 11px; color: var(--sub); }
@@ -54,7 +60,7 @@
   .log-item img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
   .log-item .name { flex: 1; font-size: 14px; }
   .log-item .name small { display: block; color: var(--sub); font-size: 12px; }
-  .log-item .kc { font-weight: 600; font-size: 14px; }
+  .log-item .kc { font-weight: 600; font-size: 14px; cursor: pointer; border-bottom: 1px dashed var(--line); }
   .log-item .del { color: var(--red); background: none; border: none; font-size: 18px; cursor: pointer; padding: 4px 8px; }
   .muted { color: var(--sub); font-size: 13px; text-align: center; padding: 12px 0; }
   .spin { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: r .8s linear infinite; vertical-align: -3px; }
@@ -63,7 +69,17 @@
   .keyrow input { flex: 1; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
   details summary { cursor: pointer; color: var(--sub); font-size: 13px; }
   .err { color: var(--red); font-size: 13px; margin-top: 8px; }
-  .section-title { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
+  .section-title { font-size: 14px; font-weight: 600; margin: 0 0 12px; }
+  /* 趨勢圖 */
+  .chart { display: flex; align-items: flex-end; justify-content: space-between; gap: 6px; height: 120px; position: relative; }
+  .chart .col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; cursor: pointer; }
+  .chart .barwrap { width: 100%; flex: 1; display: flex; align-items: flex-end; }
+  .chart .barfill { width: 70%; margin: 0 auto; border-radius: 6px 6px 0 0; min-height: 3px; background: var(--green); transition: height .3s; }
+  .chart .col.sel .barfill { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .chart .vlabel { font-size: 10px; color: var(--sub); margin-bottom: 2px; }
+  .chart .dlabel { font-size: 11px; color: var(--sub); margin-top: 4px; }
+  .chart .col.sel .dlabel { color: var(--ink); font-weight: 700; }
+  .goalline { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--red); font-size: 9px; color: var(--red); }
 </style>
 </head>
 <body>
@@ -78,6 +94,7 @@
   <div class="goal-row">
     每日目標 <input type="number" id="goalInput" value="1500"> kcal
   </div>
+  <button class="back-today" id="backToday" onclick="goToday()">↩ 回到今天</button>
 </div>
 
 <!-- 拍照/上傳 -->
@@ -90,9 +107,15 @@
   <div id="result"></div>
 </div>
 
-<!-- 今日記錄 -->
+<!-- 近 7 天趨勢 -->
 <div class="card">
-  <p class="section-title">今日記錄</p>
+  <p class="section-title">📊 近 7 天</p>
+  <div class="chart" id="chart"></div>
+</div>
+
+<!-- 記錄 -->
+<div class="card">
+  <p class="section-title" id="logTitle">今日記錄</p>
   <div id="log"><p class="muted">還沒有記錄，拍一張開始吧！</p></div>
 </div>
 
@@ -112,14 +135,19 @@
 <script>
 const MODEL = "gpt-4o-mini";
 const $ = id => document.getElementById(id);
+const PORTIONS = { small: {label:"小份", f:0.7}, medium: {label:"中份", f:1.0}, large: {label:"大份", f:1.4} };
 
-// ---- 狀態 ----
-function todayKey() {
-  const d = new Date();
-  return "fl-" + d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
-}
-function loadLog() { try { return JSON.parse(localStorage.getItem(todayKey()) || "[]"); } catch { return []; } }
-function saveLog(arr) { localStorage.setItem(todayKey(), JSON.stringify(arr)); }
+// ---- 日期/狀態 ----
+let viewDate = new Date();            // 目前檢視的日期
+let current = null;                   // 目前辨識結果（尚未存檔）
+
+function keyFor(d) { return "fl-" + d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate(); }
+function sameDay(a, b) { return keyFor(a) === keyFor(b); }
+function isToday(d) { return sameDay(d, new Date()); }
+function loadDay(d) { try { return JSON.parse(localStorage.getItem(keyFor(d)) || "[]"); } catch { return []; } }
+function saveDay(d, arr) { localStorage.setItem(keyFor(d), JSON.stringify(arr)); }
+function dayTotal(d) { return loadDay(d).reduce((s,x)=>s+(x.kcal||0), 0); }
+function goal() { return parseInt($("goalInput").value) || 1500; }
 
 // ---- 設定 ----
 function saveKey() {
@@ -133,22 +161,30 @@ function getKey() { return localStorage.getItem("fl-key") || ""; }
 $("goalInput").value = localStorage.getItem("fl-goal") || 1500;
 $("goalInput").addEventListener("input", () => {
   localStorage.setItem("fl-goal", $("goalInput").value || 1500);
-  render();
+  renderAll();
 });
 
-// ---- 渲染 ----
-function render() {
-  const log = loadLog();
-  const total = log.reduce((s, x) => s + (x.kcal || 0), 0);
-  const goal = parseInt($("goalInput").value) || 1500;
+function goToday() { viewDate = new Date(); renderAll(); }
+
+// ---- 渲染：總熱量 + 記錄 + 圖表 ----
+function renderAll() { renderTotal(); renderLog(); renderChart(); }
+
+function renderTotal() {
+  const total = dayTotal(viewDate);
   $("totalKcal").textContent = total;
-  const pct = Math.min(100, Math.round(total / goal * 100));
+  $("todayLabel").textContent = (isToday(viewDate) ? "今天" : dateLabel(viewDate)) + "攝取熱量 (kcal)";
+  $("backToday").style.display = isToday(viewDate) ? "none" : "inline";
+  const pct = Math.min(100, Math.round(total / goal() * 100));
   const bar = $("goalBar");
   bar.style.width = pct + "%";
-  bar.style.background = total > goal ? "var(--red)" : (total > goal*0.8 ? "var(--yellow)" : "var(--green)");
+  bar.style.background = total > goal() ? "var(--red)" : (total > goal()*0.8 ? "var(--yellow)" : "var(--green)");
+}
 
+function renderLog() {
+  $("logTitle").textContent = (isToday(viewDate) ? "今日" : dateLabel(viewDate)) + "記錄";
+  const log = loadDay(viewDate);
   const box = $("log");
-  if (!log.length) { box.innerHTML = '<p class="muted">還沒有記錄，拍一張開始吧！</p>'; return; }
+  if (!log.length) { box.innerHTML = '<p class="muted">這天還沒有記錄。</p>'; return; }
   box.innerHTML = "";
   log.forEach((x, i) => {
     const row = document.createElement("div");
@@ -157,12 +193,52 @@ function render() {
       (x.thumb ? `<img src="${x.thumb}">` : "") +
       `<div class="name">${x.name} <span class="dot" style="background:var(--${x.color})"></span><small>${x.portion||""}</small></div>` +
       `<div class="kc">${x.kcal} kcal</div>`;
+    // 點熱量可手動修改
+    row.querySelector(".kc").onclick = () => {
+      const v = prompt("修改熱量 (kcal)：", x.kcal);
+      if (v !== null && !isNaN(parseInt(v))) {
+        const l = loadDay(viewDate); l[i].kcal = parseInt(v); saveDay(viewDate, l); renderAll();
+      }
+    };
     const del = document.createElement("button");
     del.className = "del"; del.textContent = "✕";
-    del.onclick = () => { const l = loadLog(); l.splice(i,1); saveLog(l); render(); };
+    del.onclick = () => { const l = loadDay(viewDate); l.splice(i,1); saveDay(viewDate, l); renderAll(); };
     row.appendChild(del);
     box.appendChild(row);
   });
+}
+
+function dateLabel(d) { return (d.getMonth()+1) + "/" + d.getDate(); }
+function weekday(d) { return ["日","一","二","三","四","五","六"][d.getDay()]; }
+
+function renderChart() {
+  const days = [];
+  for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate()-i); days.push(d); }
+  const totals = days.map(dayTotal);
+  const max = Math.max(goal(), ...totals, 1);
+  const box = $("chart");
+  box.innerHTML = "";
+  days.forEach(d => {
+    const t = dayTotal(d);
+    const col = document.createElement("div");
+    col.className = "col" + (sameDay(d, viewDate) ? " sel" : "");
+    const h = Math.round(t / max * 100);
+    const color = t > goal() ? "var(--red)" : (t > goal()*0.8 ? "var(--yellow)" : "var(--green)");
+    col.innerHTML =
+      `<div class="vlabel">${t || ""}</div>` +
+      `<div class="barwrap"><div class="barfill" style="height:${h}%;background:${color}"></div></div>` +
+      `<div class="dlabel">${weekday(d)}<br>${dateLabel(d)}</div>`;
+    col.onclick = () => { viewDate = d; renderAll(); };
+    box.appendChild(col);
+  });
+  // 目標虛線
+  const line = document.createElement("div");
+  line.className = "goalline";
+  const goalH = Math.round(goal() / max * 100);
+  // 圖表上半部約 100px 高（120 減去標籤），用百分比定位
+  line.style.bottom = (26 + goalH * 0.78) + "px";
+  line.textContent = "目標 " + goal();
+  box.appendChild(line);
 }
 
 // ---- 縮圖 ----
@@ -190,17 +266,13 @@ async function handlePhoto(e) {
   const key = getKey();
   if (!key) { $("status").innerHTML = '<p class="err">請先到下方「設定」填入 OpenAI API 金鑰。</p>'; return; }
 
-  // 讀成 dataURL
   const dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); });
-  // 壓縮後送 API（省流量/費用）
   const sendUrl = await makeThumb(dataUrl, 768);
-
   $("status").innerHTML = '<p class="muted"><span class="spin"></span> AI 辨識中…</p>';
-
   try {
     const data = await recognize(sendUrl, key);
     $("status").innerHTML = "";
-    showResult(data, await makeThumb(dataUrl, 120));
+    setupResult(data, await makeThumb(dataUrl, 120));
   } catch (err) {
     $("status").innerHTML = '<p class="err">辨識失敗：' + err.message + '</p>';
   }
@@ -210,9 +282,9 @@ async function handlePhoto(e) {
 // ---- 呼叫 OpenAI ----
 async function recognize(imageUrl, key) {
   const prompt =
-`你是營養師。看這張食物照片，估算其營養並以減重角度給紅綠黃燈。
+`你是營養師。看這張食物照片，估算「中份(一般份量)」的營養，並以減重角度給紅綠黃燈。
 只回 JSON，不要任何其他文字，格式：
-{"name":"食物名稱(繁體中文)","portion":"估計份量描述","kcal":整數熱量,"protein":蛋白質克數,"fat":脂肪克數,"carb":碳水克數,"color":"green或yellow或red","reason":"一句話說明燈號原因(繁體中文,20字內)"}
+{"name":"食物名稱(繁體中文)","portion":"份量描述","kcal":整數熱量,"protein":蛋白質克數,"fat":脂肪克數,"carb":碳水克數,"color":"green或yellow或red","reason":"一句話說明燈號原因(繁體中文,20字內)"}
 
 燈號標準(減重導向)：
 - green綠：低熱量密度、高纖或高蛋白(蔬菜、水煮蛋、無糖優格、瘦肉、清湯)
@@ -224,16 +296,12 @@ async function recognize(imageUrl, key) {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
     body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 400,
+      model: MODEL, max_tokens: 400,
       response_format: { type: "json_object" },
-      messages: [{
-        role: "user",
-        content: [
-          { type: "text", text: prompt },
-          { type: "image_url", image_url: { url: imageUrl, detail: "low" } }
-        ]
-      }]
+      messages: [{ role: "user", content: [
+        { type: "text", text: prompt },
+        { type: "image_url", image_url: { url: imageUrl, detail: "low" } }
+      ]}]
     })
   });
   if (!res.ok) {
@@ -246,37 +314,77 @@ async function recognize(imageUrl, key) {
   return JSON.parse(j.choices[0].message.content);
 }
 
-// ---- 顯示結果並存檔 ----
-function showResult(d, thumb) {
-  const colors = { green:"綠燈", yellow:"黃燈", red:"紅燈" };
-  const labels = { green:"放心吃 👍", yellow:"適量 ⚠️", red:"少吃 🚫" };
+// ---- 顯示結果（含份量切換 + 手動修改）----
+function setupResult(d, thumb) {
   const c = ["green","yellow","red"].includes(d.color) ? d.color : "yellow";
-  $("result").innerHTML =
-    `<div class="light-banner light-${c}"><span style="font-size:22px">${c==='green'?'🟢':c==='yellow'?'🟡':'🔴'}</span> ${colors[c]}・${labels[c]}</div>
-     <p class="food-name">${d.name}</p>
-     <p class="portion">${d.portion||""}</p>
-     <div class="kcal-big">${d.kcal||0} <span class="kcal-unit">kcal</span></div>
-     <div class="macros">
-       <div class="macro"><b>${d.protein||0}g</b><span>蛋白質</span></div>
-       <div class="macro"><b>${d.fat||0}g</b><span>脂肪</span></div>
-       <div class="macro"><b>${d.carb||0}g</b><span>碳水</span></div>
-     </div>
-     <p class="reason">💡 ${d.reason||""}</p>
-     <button class="btn" id="addBtn" style="margin-top:12px">＋ 加入今日記錄</button>`;
-  $("addBtn").onclick = () => {
-    const log = loadLog();
-    log.push({ name:d.name, portion:d.portion, kcal:d.kcal||0, color:c, thumb });
-    saveLog(log);
-    $("result").innerHTML = "";
-    $("status").innerHTML = '<p class="muted">✅ 已加入記錄</p>';
-    setTimeout(()=>$("status").innerHTML="", 1500);
-    render();
+  current = {
+    name: d.name || "食物",
+    color: c, reason: d.reason || "", thumb,
+    base: { kcal: d.kcal||0, protein: d.protein||0, fat: d.fat||0, carb: d.carb||0 },
+    size: "medium", manualKcal: null
   };
+  const banner = { green:["🟢","綠燈・放心吃 👍"], yellow:["🟡","黃燈・適量 ⚠️"], red:["🔴","紅燈・少吃 🚫"] }[c];
+  $("result").innerHTML =
+    `<div class="light-banner light-${c}"><span style="font-size:22px">${banner[0]}</span> ${banner[1]}</div>
+     <input class="name-input" id="rName" value="${current.name.replace(/"/g,'&quot;')}">
+     <div class="portion-row" id="portionRow">
+       ${Object.entries(PORTIONS).map(([k,v]) => `<button data-k="${k}" class="${k==='medium'?'on':''}">${v.label}</button>`).join("")}
+     </div>
+     <div class="kcal-edit"><input type="number" id="rKcal"><span class="kcal-unit">kcal</span></div>
+     <div class="macros">
+       <div class="macro"><b id="rP">0g</b><span>蛋白質</span></div>
+       <div class="macro"><b id="rF">0g</b><span>脂肪</span></div>
+       <div class="macro"><b id="rC">0g</b><span>碳水</span></div>
+     </div>
+     <p class="reason">💡 ${current.reason}</p>
+     <button class="btn" id="addBtn" style="margin-top:12px">＋ 加入${isToday(viewDate)?"今日":dateLabel(viewDate)}記錄</button>`;
+
+  $("rName").oninput = e => current.name = e.target.value;
+  $("rKcal").oninput = e => { current.manualKcal = parseInt(e.target.value) || 0; };
+  $("portionRow").querySelectorAll("button").forEach(b => b.onclick = () => {
+    current.size = b.dataset.k; current.manualKcal = null;
+    $("portionRow").querySelectorAll("button").forEach(x => x.classList.toggle("on", x===b));
+    renderResultNumbers();
+  });
+  $("addBtn").onclick = addCurrent;
+  renderResultNumbers();
+}
+
+function effKcal() {
+  if (current.manualKcal !== null) return current.manualKcal;
+  return Math.round(current.base.kcal * PORTIONS[current.size].f);
+}
+function renderResultNumbers() {
+  const f = PORTIONS[current.size].f;
+  $("rKcal").value = effKcal();
+  $("rP").textContent = Math.round(current.base.protein * f) + "g";
+  $("rF").textContent = Math.round(current.base.fat * f) + "g";
+  $("rC").textContent = Math.round(current.base.carb * f) + "g";
+}
+
+function addCurrent() {
+  const log = loadDay(viewDate);
+  log.push({
+    name: current.name,
+    portion: PORTIONS[current.size].label,
+    kcal: effKcal(), color: current.color, thumb: current.thumb
+  });
+  saveDay(viewDate, log);
+  current = null;
+  $("result").innerHTML = "";
+  $("status").innerHTML = '<p class="muted">✅ 已加入記錄</p>';
+  setTimeout(()=>$("status").innerHTML="", 1500);
+  renderAll();
+}
+
+// ---- Service Worker（離線可用）----
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
 }
 
 // init
 $("apiKey").value = "";
-render();
+renderAll();
 </script>
 </body>
 </html>
