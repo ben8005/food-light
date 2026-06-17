@@ -105,7 +105,7 @@
 </head>
 <body>
 
-<h1><span class="dot" style="background:var(--green)"></span><span class="dot" style="background:var(--yellow)"></span><span class="dot" style="background:var(--red)"></span> 食物紅綠燈 <span style="font-size:12px;color:var(--sub);font-weight:400">v7</span></h1>
+<h1><span class="dot" style="background:var(--green)"></span><span class="dot" style="background:var(--yellow)"></span><span class="dot" style="background:var(--red)"></span> 食物紅綠燈 <span style="font-size:12px;color:var(--sub);font-weight:400">v8</span></h1>
 
 <!-- 當天總熱量 -->
 <div class="card total-card">
@@ -227,14 +227,9 @@ document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
   if (b.dataset.tab !== "scan") stopScan();
 });
 
-// ---- 燈號規則（無 AI 時用）----
-function lightFrom(per100kcal, grade) {
-  if (grade) { const g = grade.toLowerCase(); if (g==="a"||g==="b") return "green"; if (g==="c") return "yellow"; return "red"; }
-  if (per100kcal < 120) return "green";
-  if (per100kcal <= 250) return "yellow";
-  return "red";
-}
-function lightFromServing(kcal) { return kcal < 100 ? "green" : (kcal <= 300 ? "yellow" : "red"); }
+// ---- 燈號規則：統一用「每份實際熱量」----
+// 🟢 <150　🟡 150–400　🔴 >400 kcal
+function lightForKcal(kcal) { return kcal < 150 ? "green" : (kcal <= 400 ? "yellow" : "red"); }
 
 // =================== 渲染 ===================
 function renderAll() { renderTotal(); renderLog(); renderChart(); renderFavs(); }
@@ -326,7 +321,7 @@ function renderFavs() {
 function addFavPrompt() {
   const name = prompt("食物名稱："); if (!name) return;
   const kcal = parseInt(prompt("一份熱量 (kcal)：")); if (isNaN(kcal)) return;
-  const a = loadFavs(); a.push({ name, kcal, color: lightFromServing(kcal) }); saveFavs(a); renderFavs();
+  const a = loadFavs(); a.push({ name, kcal, color: lightForKcal(kcal) }); saveFavs(a); renderFavs();
 }
 function quickAddFav(f) {
   const log = loadDay(viewDate);
@@ -375,10 +370,9 @@ async function handlePhoto(e) {
 }
 async function recognize(imageUrl, key) {
   const prompt =
-`你是營養師。看這張食物照片，估算「中份(一般份量)」的營養，並以減重角度給紅綠黃燈。
+`你是營養師。看這張食物照片，估算「中份(一般份量)」的營養。
 只回 JSON，不要任何其他文字，格式：
-{"name":"食物名稱(繁體中文)","portion":"份量描述","kcal":整數熱量,"protein":蛋白質克數,"fat":脂肪克數,"carb":碳水克數,"color":"green或yellow或red","reason":"一句話說明燈號原因(繁體中文,20字內)"}
-燈號(減重)：green低熱量密度/高纖高蛋白；yellow中等(飯麵水果)；red高糖高油炸物甜點。
+{"name":"食物名稱(繁體中文)","portion":"份量描述","kcal":整數熱量,"protein":蛋白質克數,"fat":脂肪克數,"carb":碳水克數}
 若非食物，name填"非食物"，kcal填0。`;
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -533,29 +527,25 @@ async function onScan(code) {
 // =================== 結果卡（兩種模式共用）===================
 // 模式 portion：base 為「中份」，用 小/中/大 倍率
 function setupResultPortion(d, thumb) {
-  const c = ["green","yellow","red"].includes(d.color) ? d.color : "yellow";
-  current = { mode:"portion", name:d.name||"食物", color:c, reason:d.reason||"", thumb,
+  current = { mode:"portion", name:d.name||"食物", color:"yellow", reason:"燈號依這份的實際熱量判斷", thumb,
     base:{ kcal:d.kcal||0, protein:d.protein||0, fat:d.fat||0, carb:d.carb||0 }, size:"medium", grams:100, manualKcal:null };
   buildResultCard();
 }
 // 模式 grams：base 為「每 100g」，用克數換算
 function setupResultGrams(p) {
-  current = { mode:"grams", name:p.name, color:lightFrom(p.per100.kcal, p.grade), reason:"依每100g營養估算", thumb:p.thumb||"",
+  current = { mode:"grams", name:p.name, color:"yellow", reason:"依每100g營養 × 克數估算", thumb:p.thumb||"",
     base:{ kcal:p.per100.kcal, protein:p.per100.protein, fat:p.per100.fat, carb:p.per100.carb }, size:"medium", grams:100, manualKcal:null };
-  // 切到結果顯示處
   buildResultCard();
 }
 function factor() { return current.mode === "grams" ? (current.grams/100) : PORTIONS[current.size].f; }
 function effKcal() { return current.manualKcal !== null ? current.manualKcal : Math.round(current.base.kcal * factor()); }
 
 function buildResultCard() {
-  const c = current.color;
-  const banner = { green:["🟢","綠燈・放心吃 👍"], yellow:["🟡","黃燈・適量 ⚠️"], red:["🔴","紅燈・少吃 🚫"] }[c];
   const portionUI = current.mode === "portion"
     ? `<div class="portion-row" id="portionRow">${Object.entries(PORTIONS).map(([k,v])=>`<button data-k="${k}" class="${k==='medium'?'on':''}">${v.label}</button>`).join("")}</div>`
     : `<div class="grams-row">份量 <input type="number" id="gramsInput" value="100"> 克</div>`;
   $("result").innerHTML =
-    `<div class="light-banner light-${c}"><span style="font-size:22px">${banner[0]}</span> ${banner[1]}</div>
+    `<div class="light-banner" id="rBanner"></div>
      <input class="name-input" id="rName" value="${(current.name||'').replace(/"/g,'&quot;')}">
      ${portionUI}
      <div class="kcal-edit"><input type="number" id="rKcal"><span class="kcal-unit">kcal</span></div>
@@ -569,7 +559,7 @@ function buildResultCard() {
      <button class="btn sec" id="favBtn" style="margin-top:8px">★ 存為常吃</button>`;
 
   $("rName").oninput = e => current.name = e.target.value;
-  $("rKcal").oninput = e => { current.manualKcal = parseInt(e.target.value) || 0; };
+  $("rKcal").oninput = e => { current.manualKcal = parseInt(e.target.value) || 0; updateBanner(current.manualKcal); };
   if (current.mode === "portion") {
     $("portionRow").querySelectorAll("button").forEach(b => b.onclick = () => {
       current.size = b.dataset.k; current.manualKcal = null;
@@ -589,10 +579,20 @@ function buildResultCard() {
 }
 function renderResultNumbers() {
   const f = factor();
-  $("rKcal").value = effKcal();
+  const k = effKcal();
+  $("rKcal").value = k;
   $("rP").textContent = Math.round(current.base.protein * f) + "g";
   $("rF").textContent = Math.round(current.base.fat * f) + "g";
   $("rC").textContent = Math.round(current.base.carb * f) + "g";
+  updateBanner(k);
+}
+// 燈號跟著實際熱量即時變動
+function updateBanner(k) {
+  current.color = lightForKcal(k);
+  const banner = { green:["🟢","綠燈・放心吃 👍"], yellow:["🟡","黃燈・適量 ⚠️"], red:["🔴","紅燈・少吃 🚫"] }[current.color];
+  const el = $("rBanner");
+  el.className = "light-banner light-" + current.color;
+  el.innerHTML = `<span style="font-size:22px">${banner[0]}</span> ${banner[1]}`;
 }
 function addCurrent() {
   const log = loadDay(viewDate);
