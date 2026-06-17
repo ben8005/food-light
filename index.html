@@ -41,6 +41,8 @@
   }
   .btn:active { opacity: .85; }
   .btn.sec { background: #fff; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
+  .btn-row { display: flex; gap: 10px; margin-top: 10px; }
+  .btn-row .btn { font-size: 15px; padding: 13px; }
   input[type=file] { display: none; }
   .light-banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; font-weight: 700; color: #fff; margin-bottom: 12px; }
   .light-green { background: var(--green); } .light-yellow { background: var(--yellow); } .light-red { background: var(--red); }
@@ -48,6 +50,8 @@
   .portion-row { display: flex; gap: 8px; margin: 10px 0; }
   .portion-row button { flex: 1; padding: 8px; border: 1px solid var(--line); background: #fff; border-radius: 10px; font-size: 14px; cursor: pointer; color: var(--sub); }
   .portion-row button.on { background: var(--green); color: #fff; border-color: var(--green); font-weight: 600; }
+  .grams-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-size: 14px; color: var(--sub); }
+  .grams-row input { width: 90px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; font-size: 15px; text-align: center; }
   .kcal-edit { display: flex; align-items: baseline; gap: 6px; }
   .kcal-edit input { font-size: 32px; font-weight: 700; width: 120px; border: none; border-bottom: 2px solid var(--line); padding: 2px 0; color: var(--ink); background: transparent; }
   .kcal-unit { font-size: 14px; color: var(--sub); }
@@ -55,6 +59,21 @@
   .macro { flex: 1; background: var(--bg); border-radius: 10px; padding: 8px; text-align: center; }
   .macro b { display: block; font-size: 16px; } .macro span { font-size: 11px; color: var(--sub); }
   .reason { font-size: 13px; color: var(--sub); line-height: 1.5; background: var(--bg); padding: 10px 12px; border-radius: 10px; }
+  /* 搜尋 / 掃碼 */
+  .search-row { display: flex; gap: 8px; margin-top: 12px; }
+  .search-row input { flex: 1; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 15px; }
+  .result-list { margin-top: 10px; }
+  .result-list .ritem { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; cursor: pointer; }
+  .result-list .ritem img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; background: var(--bg); }
+  .result-list .ritem .t { flex: 1; font-size: 14px; } .result-list .ritem .t small { color: var(--sub); display: block; font-size: 12px; }
+  #scanner { width: 100%; border-radius: 12px; overflow: hidden; margin-top: 12px; }
+  /* 常吃 */
+  .favs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .fav { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 99px; border: 1px solid var(--line); background: #fff; font-size: 14px; cursor: pointer; }
+  .fav .fdot { width: 9px; height: 9px; border-radius: 50%; }
+  .fav .fx { color: var(--sub); font-size: 12px; margin-left: 2px; }
+  .fav.add { color: var(--green); border-style: dashed; }
+  /* 記錄 / 圖表 */
   .log-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .log-item:last-child { border-bottom: none; }
   .log-item img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
@@ -70,16 +89,18 @@
   details summary { cursor: pointer; color: var(--sub); font-size: 13px; }
   .err { color: var(--red); font-size: 13px; margin-top: 8px; }
   .section-title { font-size: 14px; font-weight: 600; margin: 0 0 12px; }
-  /* 趨勢圖 */
+  .tabs { display: flex; gap: 6px; margin-bottom: 4px; }
+  .tabs button { flex: 1; padding: 10px 4px; border: 1px solid var(--line); background: #fff; border-radius: 10px; font-size: 13px; cursor: pointer; color: var(--sub); }
+  .tabs button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .pane { display: none; } .pane.on { display: block; }
   .chart { display: flex; align-items: flex-end; justify-content: space-between; gap: 6px; height: 120px; position: relative; }
   .chart .col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; cursor: pointer; }
   .chart .barwrap { width: 100%; flex: 1; display: flex; align-items: flex-end; }
   .chart .barfill { width: 70%; margin: 0 auto; border-radius: 6px 6px 0 0; min-height: 3px; background: var(--green); transition: height .3s; }
   .chart .col.sel .barfill { outline: 2px solid var(--ink); outline-offset: 1px; }
   .chart .vlabel { font-size: 10px; color: var(--sub); margin-bottom: 2px; }
-  .chart .dlabel { font-size: 11px; color: var(--sub); margin-top: 4px; }
+  .chart .dlabel { font-size: 11px; color: var(--sub); margin-top: 4px; text-align: center; }
   .chart .col.sel .dlabel { color: var(--ink); font-weight: 700; }
-  .goalline { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--red); font-size: 9px; color: var(--red); }
 </style>
 </head>
 <body>
@@ -91,18 +112,47 @@
   <div class="total-num" id="totalKcal">0</div>
   <div class="total-label" id="todayLabel">今天攝取熱量 (kcal)</div>
   <div class="bar"><div id="goalBar" style="width:0%"></div></div>
-  <div class="goal-row">
-    每日目標 <input type="number" id="goalInput" value="1500"> kcal
-  </div>
+  <div class="goal-row">每日目標 <input type="number" id="goalInput" value="1500"> kcal</div>
   <button class="back-today" id="backToday" onclick="goToday()">↩ 回到今天</button>
 </div>
 
-<!-- 拍照/上傳 -->
+<!-- 新增食物 -->
 <div class="card">
-  <label class="btn" for="cameraInput">📷 拍照</label>
-  <input type="file" id="cameraInput" accept="image/*" capture="environment">
-  <label class="btn sec" for="fileInput" style="margin-top:10px">🖼️ 從相簿上傳</label>
-  <input type="file" id="fileInput" accept="image/*">
+  <div class="tabs">
+    <button data-tab="ai" class="on">📷 拍照</button>
+    <button data-tab="search">🔍 搜尋</button>
+    <button data-tab="scan">🏷️ 條碼</button>
+    <button data-tab="fav">⭐ 常吃</button>
+  </div>
+
+  <!-- AI 拍照 -->
+  <div class="pane on" id="pane-ai">
+    <label class="btn" for="cameraInput" style="margin-top:10px">📷 拍照辨識</label>
+    <input type="file" id="cameraInput" accept="image/*" capture="environment">
+    <label class="btn sec" for="fileInput" style="margin-top:10px">🖼️ 從相簿上傳</label>
+    <input type="file" id="fileInput" accept="image/*">
+  </div>
+
+  <!-- 名稱搜尋 -->
+  <div class="pane" id="pane-search">
+    <div class="search-row">
+      <input id="searchInput" placeholder="輸入食物名稱，如：豆漿">
+      <button class="btn" style="width:auto;padding:12px 18px" onclick="doSearch()">搜尋</button>
+    </div>
+    <div class="result-list" id="searchResults"></div>
+  </div>
+
+  <!-- 條碼掃描 -->
+  <div class="pane" id="pane-scan">
+    <button class="btn" id="scanBtn" style="margin-top:10px" onclick="toggleScan()">📷 開始掃描條碼</button>
+    <div id="scanner"></div>
+  </div>
+
+  <!-- 常吃清單 -->
+  <div class="pane" id="pane-fav">
+    <div class="favs" id="favs"></div>
+  </div>
+
   <div id="status"></div>
   <div id="result"></div>
 </div>
@@ -116,14 +166,14 @@
 <!-- 記錄 -->
 <div class="card">
   <p class="section-title" id="logTitle">今日記錄</p>
-  <div id="log"><p class="muted">還沒有記錄，拍一張開始吧！</p></div>
+  <div id="log"><p class="muted">還沒有記錄。</p></div>
 </div>
 
 <!-- 設定 -->
 <div class="card">
   <details>
-    <summary>⚙️ 設定 OpenAI API 金鑰</summary>
-    <p class="muted" style="text-align:left">金鑰只存在這支手機/瀏覽器，不會上傳到任何地方。<br>去 platform.openai.com → API keys 申請。</p>
+    <summary>⚙️ 設定 OpenAI API 金鑰（只有拍照辨識需要）</summary>
+    <p class="muted" style="text-align:left">金鑰只存在這支手機/瀏覽器，不會上傳到任何地方。去 platform.openai.com → API keys 申請。<br>搜尋、條碼、常吃都不需要金鑰。</p>
     <div class="keyrow">
       <input type="password" id="apiKey" placeholder="sk-...">
       <button class="btn sec" style="width:auto;padding:12px 16px" onclick="saveKey()">儲存</button>
@@ -138,8 +188,8 @@ const $ = id => document.getElementById(id);
 const PORTIONS = { small: {label:"小份", f:0.7}, medium: {label:"中份", f:1.0}, large: {label:"大份", f:1.4} };
 
 // ---- 日期/狀態 ----
-let viewDate = new Date();            // 目前檢視的日期
-let current = null;                   // 目前辨識結果（尚未存檔）
+let viewDate = new Date();
+let current = null;
 
 function keyFor(d) { return "fl-" + d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate(); }
 function sameDay(a, b) { return keyFor(a) === keyFor(b); }
@@ -148,8 +198,10 @@ function loadDay(d) { try { return JSON.parse(localStorage.getItem(keyFor(d)) ||
 function saveDay(d, arr) { localStorage.setItem(keyFor(d), JSON.stringify(arr)); }
 function dayTotal(d) { return loadDay(d).reduce((s,x)=>s+(x.kcal||0), 0); }
 function goal() { return parseInt($("goalInput").value) || 1500; }
+function dateLabel(d) { return (d.getMonth()+1) + "/" + d.getDate(); }
+function weekday(d) { return ["日","一","二","三","四","五","六"][d.getDay()]; }
 
-// ---- 設定 ----
+// ---- 設定 / 金鑰 ----
 function saveKey() {
   const k = $("apiKey").value.trim();
   if (k) { localStorage.setItem("fl-key", k); $("keyMsg").textContent = "✅ 已儲存"; }
@@ -159,15 +211,29 @@ function getKey() { return localStorage.getItem("fl-key") || ""; }
 
 // ---- 目標 ----
 $("goalInput").value = localStorage.getItem("fl-goal") || 1500;
-$("goalInput").addEventListener("input", () => {
-  localStorage.setItem("fl-goal", $("goalInput").value || 1500);
-  renderAll();
-});
-
+$("goalInput").addEventListener("input", () => { localStorage.setItem("fl-goal", $("goalInput").value || 1500); renderAll(); });
 function goToday() { viewDate = new Date(); renderAll(); }
 
-// ---- 渲染：總熱量 + 記錄 + 圖表 ----
-function renderAll() { renderTotal(); renderLog(); renderChart(); }
+// ---- 分頁切換 ----
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x===b));
+  document.querySelectorAll(".pane").forEach(p => p.classList.remove("on"));
+  $("pane-" + b.dataset.tab).classList.add("on");
+  $("result").innerHTML = ""; $("status").innerHTML = "";
+  if (b.dataset.tab !== "scan") stopScan();
+});
+
+// ---- 燈號規則（無 AI 時用）----
+function lightFrom(per100kcal, grade) {
+  if (grade) { const g = grade.toLowerCase(); if (g==="a"||g==="b") return "green"; if (g==="c") return "yellow"; return "red"; }
+  if (per100kcal < 120) return "green";
+  if (per100kcal <= 250) return "yellow";
+  return "red";
+}
+function lightFromServing(kcal) { return kcal < 100 ? "green" : (kcal <= 300 ? "yellow" : "red"); }
+
+// =================== 渲染 ===================
+function renderAll() { renderTotal(); renderLog(); renderChart(); renderFavs(); }
 
 function renderTotal() {
   const total = dayTotal(viewDate);
@@ -193,12 +259,9 @@ function renderLog() {
       (x.thumb ? `<img src="${x.thumb}">` : "") +
       `<div class="name">${x.name} <span class="dot" style="background:var(--${x.color})"></span><small>${x.portion||""}</small></div>` +
       `<div class="kc">${x.kcal} kcal</div>`;
-    // 點熱量可手動修改
     row.querySelector(".kc").onclick = () => {
       const v = prompt("修改熱量 (kcal)：", x.kcal);
-      if (v !== null && !isNaN(parseInt(v))) {
-        const l = loadDay(viewDate); l[i].kcal = parseInt(v); saveDay(viewDate, l); renderAll();
-      }
+      if (v !== null && !isNaN(parseInt(v))) { const l = loadDay(viewDate); l[i].kcal = parseInt(v); saveDay(viewDate, l); renderAll(); }
     };
     const del = document.createElement("button");
     del.className = "del"; del.textContent = "✕";
@@ -207,9 +270,6 @@ function renderLog() {
     box.appendChild(row);
   });
 }
-
-function dateLabel(d) { return (d.getMonth()+1) + "/" + d.getDate(); }
-function weekday(d) { return ["日","一","二","三","四","五","六"][d.getDay()]; }
 
 function renderChart() {
   const days = [];
@@ -231,17 +291,49 @@ function renderChart() {
     col.onclick = () => { viewDate = d; renderAll(); };
     box.appendChild(col);
   });
-  // 目標虛線
-  const line = document.createElement("div");
-  line.className = "goalline";
-  const goalH = Math.round(goal() / max * 100);
-  // 圖表上半部約 100px 高（120 減去標籤），用百分比定位
-  line.style.bottom = (26 + goalH * 0.78) + "px";
-  line.textContent = "目標 " + goal();
-  box.appendChild(line);
 }
 
-// ---- 縮圖 ----
+// =================== 常吃清單 ===================
+function loadFavs() { try { return JSON.parse(localStorage.getItem("fl-favs") || "[]"); } catch { return []; } }
+function saveFavs(a) { localStorage.setItem("fl-favs", JSON.stringify(a)); }
+function renderFavs() {
+  const favs = loadFavs();
+  const box = $("favs");
+  box.innerHTML = "";
+  favs.forEach((f, i) => {
+    const el = document.createElement("div");
+    el.className = "fav";
+    el.innerHTML = `<span class="fdot" style="background:var(--${f.color})"></span>${f.name} ${f.kcal}kcal<span class="fx">✕</span>`;
+    el.querySelector(".fx").onclick = (ev) => { ev.stopPropagation(); const a = loadFavs(); a.splice(i,1); saveFavs(a); renderFavs(); };
+    el.onclick = () => quickAddFav(f);
+    box.appendChild(el);
+  });
+  const add = document.createElement("div");
+  add.className = "fav add"; add.textContent = "＋ 新增常吃";
+  add.onclick = addFavPrompt;
+  box.appendChild(add);
+  if (!favs.length) {
+    const tip = document.createElement("p");
+    tip.className = "muted"; tip.style.width = "100%";
+    tip.textContent = "把常吃的食物加進來，之後一鍵記錄。也可在辨識/搜尋結果按「存為常吃」。";
+    box.appendChild(tip);
+  }
+}
+function addFavPrompt() {
+  const name = prompt("食物名稱："); if (!name) return;
+  const kcal = parseInt(prompt("一份熱量 (kcal)：")); if (isNaN(kcal)) return;
+  const a = loadFavs(); a.push({ name, kcal, color: lightFromServing(kcal) }); saveFavs(a); renderFavs();
+}
+function quickAddFav(f) {
+  const log = loadDay(viewDate);
+  log.push({ name: f.name, portion: "常吃", kcal: f.kcal, color: f.color });
+  saveDay(viewDate, log);
+  $("status").innerHTML = `<p class="muted">✅ 已加入「${f.name}」</p>`;
+  setTimeout(()=>$("status").innerHTML="", 1500);
+  renderAll();
+}
+
+// =================== 縮圖 ===================
 function makeThumb(dataUrl, size) {
   return new Promise(res => {
     const img = new Image();
@@ -256,7 +348,7 @@ function makeThumb(dataUrl, size) {
   });
 }
 
-// ---- 主流程：選照片 ----
+// =================== AI 拍照 ===================
 $("cameraInput").addEventListener("change", handlePhoto);
 $("fileInput").addEventListener("change", handlePhoto);
 async function handlePhoto(e) {
@@ -264,40 +356,31 @@ async function handlePhoto(e) {
   if (!file) return;
   $("result").innerHTML = "";
   const key = getKey();
-  if (!key) { $("status").innerHTML = '<p class="err">請先到下方「設定」填入 OpenAI API 金鑰。</p>'; return; }
-
+  if (!key) { $("status").innerHTML = '<p class="err">拍照辨識需要 OpenAI 金鑰，請到下方「設定」填入。（或改用搜尋／條碼／常吃）</p>'; e.target.value=""; return; }
   const dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); });
   const sendUrl = await makeThumb(dataUrl, 768);
   $("status").innerHTML = '<p class="muted"><span class="spin"></span> AI 辨識中…</p>';
   try {
     const data = await recognize(sendUrl, key);
     $("status").innerHTML = "";
-    setupResult(data, await makeThumb(dataUrl, 120));
+    setupResultPortion(data, await makeThumb(dataUrl, 120));
   } catch (err) {
     $("status").innerHTML = '<p class="err">辨識失敗：' + err.message + '</p>';
   }
   e.target.value = "";
 }
-
-// ---- 呼叫 OpenAI ----
 async function recognize(imageUrl, key) {
   const prompt =
 `你是營養師。看這張食物照片，估算「中份(一般份量)」的營養，並以減重角度給紅綠黃燈。
 只回 JSON，不要任何其他文字，格式：
 {"name":"食物名稱(繁體中文)","portion":"份量描述","kcal":整數熱量,"protein":蛋白質克數,"fat":脂肪克數,"carb":碳水克數,"color":"green或yellow或red","reason":"一句話說明燈號原因(繁體中文,20字內)"}
-
-燈號標準(減重導向)：
-- green綠：低熱量密度、高纖或高蛋白(蔬菜、水煮蛋、無糖優格、瘦肉、清湯)
-- yellow黃：中等(白飯、麵、水果、堅果適量)
-- red紅：高熱量密度/高糖高油(炸物、甜點、含糖飲料、加工肉、奶油類)
-若照片不是食物，name填"非食物"，kcal填0。`;
-
+燈號(減重)：green低熱量密度/高纖高蛋白；yellow中等(飯麵水果)；red高糖高油炸物甜點。
+若非食物，name填"非食物"，kcal填0。`;
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
     body: JSON.stringify({
-      model: MODEL, max_tokens: 400,
-      response_format: { type: "json_object" },
+      model: MODEL, max_tokens: 400, response_format: { type: "json_object" },
       messages: [{ role: "user", content: [
         { type: "text", text: prompt },
         { type: "image_url", image_url: { url: imageUrl, detail: "low" } }
@@ -314,22 +397,121 @@ async function recognize(imageUrl, key) {
   return JSON.parse(j.choices[0].message.content);
 }
 
-// ---- 顯示結果（含份量切換 + 手動修改）----
-function setupResult(d, thumb) {
-  const c = ["green","yellow","red"].includes(d.color) ? d.color : "yellow";
-  current = {
-    name: d.name || "食物",
-    color: c, reason: d.reason || "", thumb,
-    base: { kcal: d.kcal||0, protein: d.protein||0, fat: d.fat||0, carb: d.carb||0 },
-    size: "medium", manualKcal: null
+// =================== 名稱搜尋（Open Food Facts）===================
+async function doSearch() {
+  const q = $("searchInput").value.trim();
+  if (!q) return;
+  $("searchResults").innerHTML = '<p class="muted"><span class="spin" style="border-color:#ccc;border-top-color:#666"></span> 搜尋中…</p>';
+  try {
+    const url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(q) +
+      "&search_simple=1&action=process&json=1&page_size=12" +
+      "&fields=product_name,product_name_zh,brands,nutriments,nutriscore_grade,image_small_url,code";
+    const r = await fetch(url);
+    const j = await r.json();
+    const items = (j.products || []).map(parseProduct).filter(p => p.per100.kcal > 0);
+    if (!items.length) { $("searchResults").innerHTML = '<p class="muted">查無結果，可改用拍照或手動新增常吃。</p>'; return; }
+    $("searchResults").innerHTML = "";
+    items.forEach(p => {
+      const el = document.createElement("div");
+      el.className = "ritem";
+      el.innerHTML = (p.thumb ? `<img src="${p.thumb}">` : `<div style="width:40px"></div>`) +
+        `<div class="t">${p.name}<small>每100g約 ${p.per100.kcal} kcal</small></div>`;
+      el.onclick = () => setupResultGrams(p);
+      $("searchResults").appendChild(el);
+    });
+  } catch (err) {
+    $("searchResults").innerHTML = '<p class="err">搜尋失敗，請檢查網路。</p>';
+  }
+}
+function parseProduct(p) {
+  const n = p.nutriments || {};
+  let kcal = n["energy-kcal_100g"];
+  if (kcal == null && n["energy_100g"] != null) kcal = n["energy_100g"] / 4.184; // kJ→kcal
+  return {
+    name: p.product_name_zh || p.product_name || ("商品 " + (p.code||"")),
+    thumb: p.image_small_url || "",
+    grade: p.nutriscore_grade,
+    per100: {
+      kcal: Math.round(kcal || 0),
+      protein: +(n.proteins_100g || 0),
+      fat: +(n.fat_100g || 0),
+      carb: +(n.carbohydrates_100g || 0)
+    }
   };
+}
+
+// =================== 條碼掃描 ===================
+let scanner = null;
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    if (window.Html5Qrcode) return res();
+    const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+async function toggleScan() {
+  if (scanner) { stopScan(); return; }
+  $("status").innerHTML = ""; $("result").innerHTML = "";
+  $("scanBtn").textContent = "載入中…";
+  try {
+    await loadScript("https://unpkg.com/html5-qrcode");
+    scanner = new Html5Qrcode("scanner");
+    await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 150 } },
+      onScan, () => {});
+    $("scanBtn").textContent = "⏹ 停止掃描";
+  } catch (err) {
+    $("status").innerHTML = '<p class="err">無法開啟相機掃描：' + (err.message||err) + '</p>';
+    $("scanBtn").textContent = "📷 開始掃描條碼"; scanner = null;
+  }
+}
+function stopScan() {
+  if (scanner) { try { scanner.stop().then(()=>scanner.clear()).catch(()=>{}); } catch(e){} scanner = null; }
+  $("scanner").innerHTML = "";
+  if ($("scanBtn")) $("scanBtn").textContent = "📷 開始掃描條碼";
+}
+async function onScan(code) {
+  stopScan();
+  $("status").innerHTML = '<p class="muted"><span class="spin" style="border-color:#ccc;border-top-color:#666"></span> 查詢條碼 ' + code + '…</p>';
+  try {
+    const r = await fetch("https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(code) +
+      ".json?fields=product_name,product_name_zh,nutriments,nutriscore_grade,image_small_url,code");
+    const j = await r.json();
+    if (j.status !== 1) { $("status").innerHTML = '<p class="err">資料庫查無此條碼，可改用搜尋或手動新增。</p>'; return; }
+    $("status").innerHTML = "";
+    setupResultGrams(parseProduct(j.product));
+  } catch (err) {
+    $("status").innerHTML = '<p class="err">查詢失敗，請檢查網路。</p>';
+  }
+}
+
+// =================== 結果卡（兩種模式共用）===================
+// 模式 portion：base 為「中份」，用 小/中/大 倍率
+function setupResultPortion(d, thumb) {
+  const c = ["green","yellow","red"].includes(d.color) ? d.color : "yellow";
+  current = { mode:"portion", name:d.name||"食物", color:c, reason:d.reason||"", thumb,
+    base:{ kcal:d.kcal||0, protein:d.protein||0, fat:d.fat||0, carb:d.carb||0 }, size:"medium", grams:100, manualKcal:null };
+  buildResultCard();
+}
+// 模式 grams：base 為「每 100g」，用克數換算
+function setupResultGrams(p) {
+  current = { mode:"grams", name:p.name, color:lightFrom(p.per100.kcal, p.grade), reason:"依每100g營養估算", thumb:p.thumb||"",
+    base:{ kcal:p.per100.kcal, protein:p.per100.protein, fat:p.per100.fat, carb:p.per100.carb }, size:"medium", grams:100, manualKcal:null };
+  // 切到結果顯示處
+  buildResultCard();
+}
+function factor() { return current.mode === "grams" ? (current.grams/100) : PORTIONS[current.size].f; }
+function effKcal() { return current.manualKcal !== null ? current.manualKcal : Math.round(current.base.kcal * factor()); }
+
+function buildResultCard() {
+  const c = current.color;
   const banner = { green:["🟢","綠燈・放心吃 👍"], yellow:["🟡","黃燈・適量 ⚠️"], red:["🔴","紅燈・少吃 🚫"] }[c];
+  const portionUI = current.mode === "portion"
+    ? `<div class="portion-row" id="portionRow">${Object.entries(PORTIONS).map(([k,v])=>`<button data-k="${k}" class="${k==='medium'?'on':''}">${v.label}</button>`).join("")}</div>`
+    : `<div class="grams-row">份量 <input type="number" id="gramsInput" value="100"> 克</div>`;
   $("result").innerHTML =
     `<div class="light-banner light-${c}"><span style="font-size:22px">${banner[0]}</span> ${banner[1]}</div>
-     <input class="name-input" id="rName" value="${current.name.replace(/"/g,'&quot;')}">
-     <div class="portion-row" id="portionRow">
-       ${Object.entries(PORTIONS).map(([k,v]) => `<button data-k="${k}" class="${k==='medium'?'on':''}">${v.label}</button>`).join("")}
-     </div>
+     <input class="name-input" id="rName" value="${(current.name||'').replace(/"/g,'&quot;')}">
+     ${portionUI}
      <div class="kcal-edit"><input type="number" id="rKcal"><span class="kcal-unit">kcal</span></div>
      <div class="macros">
        <div class="macro"><b id="rP">0g</b><span>蛋白質</span></div>
@@ -337,38 +519,39 @@ function setupResult(d, thumb) {
        <div class="macro"><b id="rC">0g</b><span>碳水</span></div>
      </div>
      <p class="reason">💡 ${current.reason}</p>
-     <button class="btn" id="addBtn" style="margin-top:12px">＋ 加入${isToday(viewDate)?"今日":dateLabel(viewDate)}記錄</button>`;
+     <button class="btn" id="addBtn" style="margin-top:12px">＋ 加入${isToday(viewDate)?"今日":dateLabel(viewDate)}記錄</button>
+     <button class="btn sec" id="favBtn" style="margin-top:8px">★ 存為常吃</button>`;
 
   $("rName").oninput = e => current.name = e.target.value;
   $("rKcal").oninput = e => { current.manualKcal = parseInt(e.target.value) || 0; };
-  $("portionRow").querySelectorAll("button").forEach(b => b.onclick = () => {
-    current.size = b.dataset.k; current.manualKcal = null;
-    $("portionRow").querySelectorAll("button").forEach(x => x.classList.toggle("on", x===b));
-    renderResultNumbers();
-  });
+  if (current.mode === "portion") {
+    $("portionRow").querySelectorAll("button").forEach(b => b.onclick = () => {
+      current.size = b.dataset.k; current.manualKcal = null;
+      $("portionRow").querySelectorAll("button").forEach(x => x.classList.toggle("on", x===b));
+      renderResultNumbers();
+    });
+  } else {
+    $("gramsInput").oninput = e => { current.grams = parseInt(e.target.value) || 0; current.manualKcal = null; renderResultNumbers(); };
+  }
   $("addBtn").onclick = addCurrent;
+  $("favBtn").onclick = () => {
+    const a = loadFavs(); a.push({ name: current.name, kcal: effKcal(), color: current.color });
+    saveFavs(a); renderFavs();
+    $("favBtn").textContent = "✅ 已存為常吃"; $("favBtn").disabled = true;
+  };
   renderResultNumbers();
 }
-
-function effKcal() {
-  if (current.manualKcal !== null) return current.manualKcal;
-  return Math.round(current.base.kcal * PORTIONS[current.size].f);
-}
 function renderResultNumbers() {
-  const f = PORTIONS[current.size].f;
+  const f = factor();
   $("rKcal").value = effKcal();
   $("rP").textContent = Math.round(current.base.protein * f) + "g";
   $("rF").textContent = Math.round(current.base.fat * f) + "g";
   $("rC").textContent = Math.round(current.base.carb * f) + "g";
 }
-
 function addCurrent() {
   const log = loadDay(viewDate);
-  log.push({
-    name: current.name,
-    portion: PORTIONS[current.size].label,
-    kcal: effKcal(), color: current.color, thumb: current.thumb
-  });
+  const portionLabel = current.mode === "grams" ? (current.grams + "g") : PORTIONS[current.size].label;
+  log.push({ name: current.name, portion: portionLabel, kcal: effKcal(), color: current.color, thumb: current.thumb });
   saveDay(viewDate, log);
   current = null;
   $("result").innerHTML = "";
@@ -377,13 +560,12 @@ function addCurrent() {
   renderAll();
 }
 
-// ---- Service Worker（離線可用）----
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").catch(()=>{});
-}
+// ---- Service Worker ----
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 
 // init
 $("apiKey").value = "";
+$("searchInput") && $("searchInput").addEventListener("keydown", e => { if (e.key === "Enter") doSearch(); });
 renderAll();
 </script>
 </body>
