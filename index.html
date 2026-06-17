@@ -82,8 +82,10 @@
 
 <!-- 拍照/上傳 -->
 <div class="card">
-  <label class="btn" for="fileInput">📷 拍照 / 上傳食物照片</label>
-  <input type="file" id="fileInput" accept="image/*" capture="environment">
+  <label class="btn" for="cameraInput">📷 拍照</label>
+  <input type="file" id="cameraInput" accept="image/*" capture="environment">
+  <label class="btn sec" for="fileInput" style="margin-top:10px">🖼️ 從相簿上傳</label>
+  <input type="file" id="fileInput" accept="image/*">
   <div id="status"></div>
   <div id="result"></div>
 </div>
@@ -179,7 +181,9 @@ function makeThumb(dataUrl, size) {
 }
 
 // ---- 主流程：選照片 ----
-$("fileInput").addEventListener("change", async (e) => {
+$("cameraInput").addEventListener("change", handlePhoto);
+$("fileInput").addEventListener("change", handlePhoto);
+async function handlePhoto(e) {
   const file = e.target.files[0];
   if (!file) return;
   $("result").innerHTML = "";
@@ -201,7 +205,7 @@ $("fileInput").addEventListener("change", async (e) => {
     $("status").innerHTML = '<p class="err">辨識失敗：' + err.message + '</p>';
   }
   e.target.value = "";
-});
+}
 
 // ---- 呼叫 OpenAI ----
 async function recognize(imageUrl, key) {
