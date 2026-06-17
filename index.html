@@ -105,7 +105,7 @@
 </head>
 <body>
 
-<h1><span class="dot" style="background:var(--green)"></span><span class="dot" style="background:var(--yellow)"></span><span class="dot" style="background:var(--red)"></span> 食物紅綠燈 <span style="font-size:12px;color:var(--sub);font-weight:400">v6</span></h1>
+<h1><span class="dot" style="background:var(--green)"></span><span class="dot" style="background:var(--yellow)"></span><span class="dot" style="background:var(--red)"></span> 食物紅綠燈 <span style="font-size:12px;color:var(--sub);font-weight:400">v7</span></h1>
 
 <!-- 當天總熱量 -->
 <div class="card total-card">
@@ -402,33 +402,16 @@ async function recognize(imageUrl, key) {
 }
 
 // =================== 名稱搜尋（Open Food Facts）===================
-// 帶逾時的 fetch（避免端點卡住）
+// 帶逾時的 fetch（避免端點卡住）；直接解析文字，不依賴 content-type
 async function fetchJSON(url, ms) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), ms || 8000);
+  const timer = setTimeout(() => ctrl.abort(), ms || 10000);
   try {
     const r = await fetch(url, { signal: ctrl.signal });
     if (!r.ok) throw new Error("HTTP " + r.status);
-    const ct = r.headers.get("content-type") || "";
-    if (!ct.includes("json")) throw new Error("非 JSON 回應");
-    return await r.json();
+    const text = await r.text();
+    return JSON.parse(text);
   } finally { clearTimeout(timer); }
-}
-
-// 新版搜尋服務（Search-a-licious），回傳 hits
-async function searchViaSAL(q) {
-  const url = "https://search.openfoodfacts.org/search?q=" + encodeURIComponent(q) +
-    "&page_size=15&fields=product_name,product_name_zh,brands,nutriments,nutriscore_grade,image_small_url,code";
-  const j = await fetchJSON(url, 8000);
-  return j.hits || [];
-}
-// 舊版備援端點
-async function searchViaCGI(q) {
-  const url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(q) +
-    "&search_simple=1&action=process&json=1&page_size=15" +
-    "&fields=product_name,product_name_zh,brands,nutriments,nutriscore_grade,image_small_url,code";
-  const j = await fetchJSON(url, 9000);
-  return j.products || [];
 }
 
 async function doSearch() {
@@ -436,16 +419,17 @@ async function doSearch() {
   if (!q) return;
   $("searchResults").innerHTML = '<p class="muted"><span class="spin" style="border-color:#ccc;border-top-color:#666"></span> 搜尋中…</p>';
 
-  let raw = [], errMsg = "";
-  // 先試新版，失敗再退回舊版；兩個都掛才算失敗
-  try { raw = await searchViaSAL(q); }
-  catch (e1) {
-    try { raw = await searchViaCGI(q); }
-    catch (e2) { errMsg = (e2.name === "AbortError" || e1.name === "AbortError") ? "伺服器逾時" : "連線失敗"; }
-  }
-
-  if (errMsg) {
-    $("searchResults").innerHTML = '<p class="err">搜尋暫時無法使用（' + errMsg +
+  // 用有 CORS 的 cgi/search.pl（新版 search.openfoodfacts.org 無 CORS，瀏覽器會被擋）
+  let raw = [];
+  try {
+    const url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(q) +
+      "&search_simple=1&action=process&json=1&page_size=20" +
+      "&fields=product_name,product_name_zh,brands,nutriments,nutriscore_grade,image_small_url,code";
+    const j = await fetchJSON(url, 12000);
+    raw = j.products || [];
+  } catch (err) {
+    const reason = err.name === "AbortError" ? "伺服器逾時" : (/429/.test(err.message) ? "查詢太頻繁，請稍候再試" : "連線失敗");
+    $("searchResults").innerHTML = '<p class="err">搜尋暫時無法使用（' + reason +
       '）。<br>可稍後再試，或改用「拍照」「條碼」「＋新增常吃」。</p>';
     return;
   }
