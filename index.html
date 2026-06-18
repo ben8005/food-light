@@ -5,42 +5,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="食物紅綠燈">
-<meta name="theme-color" content="#16a34a">
+<meta name="theme-color" content="#0d9488">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
 <title>食物紅綠燈</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   :root {
-    --green: #16a34a; --yellow: #eab308; --red: #dc2626;
-    --bg: #f6f7f9; --card: #fff; --ink: #1f2937; --sub: #6b7280; --line: #e5e7eb;
+    --green: #18a558; --green-d: #0f7a40; --teal: #0d9488; --yellow: #eab308; --red: #dc2626;
+    --bg: #eef6f1; --card: #fff; --ink: #11241b; --sub: #6b7d74; --line: #e3ece7;
   }
   body {
     margin: 0; font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
-    background: var(--bg); color: var(--ink);
-    padding: 16px; max-width: 520px; margin: 0 auto; padding-bottom: 48px;
+    color: var(--ink);
+    background: linear-gradient(180deg, #e3f3ea 0%, #eef6f1 280px, #eef6f1 100%);
+    background-attachment: fixed;
+    padding: 0 16px 48px; max-width: 520px; margin: 0 auto;
   }
-  h1 { font-size: 20px; margin: 4px 0 16px; display: flex; align-items: center; gap: 8px; }
+  /* 頂部品牌 banner */
+  .hero {
+    margin: 0 -16px 16px; padding: 22px 20px 20px;
+    background: linear-gradient(135deg, #18a558 0%, #0d9488 100%);
+    color: #fff; border-radius: 0 0 24px 24px;
+    box-shadow: 0 8px 24px rgba(13,148,136,.25);
+  }
+  .hero h1 { font-size: 22px; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 9px; letter-spacing: .5px; }
+  .hero .tag { font-size: 12.5px; opacity: .92; margin-top: 5px; font-weight: 400; }
+  .hero .ver { font-size: 11px; font-weight: 400; opacity: .8; background: rgba(255,255,255,.18); padding: 2px 7px; border-radius: 99px; }
+  .hero .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 2px rgba(255,255,255,.4); }
   .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
   .card {
-    background: var(--card); border-radius: 16px; padding: 16px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 16px; border: 1px solid var(--line);
+    background: var(--card); border-radius: 18px; padding: 18px;
+    box-shadow: 0 4px 16px rgba(17,36,27,.06); margin-bottom: 16px; border: 1px solid var(--line);
   }
-  .total-card { text-align: center; }
-  .total-num { font-size: 40px; font-weight: 700; line-height: 1.1; }
+  .total-card { text-align: center; background: linear-gradient(180deg,#ffffff 0%, #f4faf6 100%); }
+  .total-num { font-size: 44px; font-weight: 800; line-height: 1.1; color: var(--green-d); letter-spacing: -1px; }
   .total-label { color: var(--sub); font-size: 13px; margin-top: 4px; }
   .goal-row { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; font-size: 13px; color: var(--sub); }
   .goal-row input { width: 70px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; text-align: center; font-size: 13px; }
   .bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 12px; }
-  .bar > div { height: 100%; background: var(--green); transition: width .4s, background .4s; }
+  .bar > div { height: 100%; background: linear-gradient(90deg,#18a558,#0d9488); transition: width .4s, background .4s; }
   .back-today { margin-top: 10px; font-size: 13px; color: var(--green); background: none; border: none; cursor: pointer; text-decoration: underline; display: none; }
   .btn {
-    display: block; width: 100%; padding: 16px; border: none; border-radius: 14px;
-    background: var(--green); color: #fff; font-size: 17px; font-weight: 600;
-    cursor: pointer; text-align: center;
+    display: block; width: 100%; padding: 15px; border: none; border-radius: 14px;
+    background: linear-gradient(135deg, #18a558 0%, #0d9488 100%); color: #fff; font-size: 17px; font-weight: 700;
+    cursor: pointer; text-align: center; box-shadow: 0 4px 12px rgba(13,148,136,.22);
+    transition: transform .08s, box-shadow .2s;
   }
-  .btn:active { opacity: .85; }
-  .btn.sec { background: #fff; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
+  .btn:active { transform: translateY(1px); box-shadow: 0 2px 6px rgba(13,148,136,.18); }
+  .btn.sec { background: #fff; color: var(--green-d); border: 1.5px solid var(--line); font-weight: 600; box-shadow: none; }
   .btn-row { display: flex; gap: 10px; margin-top: 10px; }
   .btn-row .btn { font-size: 15px; padding: 13px; }
   input[type=file] { display: none; }
@@ -88,10 +101,10 @@
   .keyrow input { flex: 1; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
   details summary { cursor: pointer; color: var(--sub); font-size: 13px; }
   .err { color: var(--red); font-size: 13px; margin-top: 8px; }
-  .section-title { font-size: 14px; font-weight: 600; margin: 0 0 12px; }
-  .tabs { display: flex; gap: 6px; margin-bottom: 4px; }
-  .tabs button { flex: 1; padding: 10px 4px; border: 1px solid var(--line); background: #fff; border-radius: 10px; font-size: 13px; cursor: pointer; color: var(--sub); }
-  .tabs button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .section-title { font-size: 14px; font-weight: 700; margin: 0 0 12px; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 6px; background: #eef3f0; padding: 5px; border-radius: 14px; }
+  .tabs button { flex: 1; padding: 10px 4px; border: none; background: transparent; border-radius: 10px; font-size: 13px; cursor: pointer; color: var(--sub); font-weight: 600; transition: all .15s; }
+  .tabs button.on { background: #fff; color: var(--green-d); box-shadow: 0 2px 6px rgba(17,36,27,.1); }
   .pane { display: none; } .pane.on { display: block; }
   .chart { display: flex; align-items: flex-end; justify-content: space-between; gap: 6px; height: 120px; position: relative; }
   .chart .col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; cursor: pointer; }
@@ -105,7 +118,10 @@
 </head>
 <body>
 
-<h1><span class="dot" style="background:var(--green)"></span><span class="dot" style="background:var(--yellow)"></span><span class="dot" style="background:var(--red)"></span> 食物紅綠燈 <span style="font-size:12px;color:var(--sub);font-weight:400">v8</span></h1>
+<div class="hero">
+  <h1><span class="dot" style="background:#86efac"></span><span class="dot" style="background:#fde047"></span><span class="dot" style="background:#fca5a5"></span> 食物紅綠燈 <span class="ver">v9</span></h1>
+  <div class="tag">拍照・搜尋・條碼，紅綠黃燈陪你健康減重</div>
+</div>
 
 <!-- 當天總熱量 -->
 <div class="card total-card">
