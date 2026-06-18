@@ -119,7 +119,7 @@
 <body>
 
 <div class="hero">
-  <h1><span class="dot" style="background:#86efac"></span><span class="dot" style="background:#fde047"></span><span class="dot" style="background:#fca5a5"></span> 食物紅綠燈 <span class="ver">v9</span></h1>
+  <h1><span class="dot" style="background:#86efac"></span><span class="dot" style="background:#fde047"></span><span class="dot" style="background:#fca5a5"></span> 食物紅綠燈 <span class="ver">v11</span></h1>
   <div class="tag">拍照・搜尋・條碼，紅綠黃燈陪你健康減重</div>
 </div>
 
@@ -152,7 +152,7 @@
   <!-- 名稱搜尋 -->
   <div class="pane" id="pane-search">
     <div class="search-row">
-      <input id="searchInput" placeholder="輸入食物名稱，如：豆漿">
+      <input id="searchInput" placeholder="食物名稱，如：白飯、雞胸肉、香蕉">
       <button class="btn" style="width:auto;padding:12px 18px" onclick="doSearch()">搜尋</button>
     </div>
     <div class="result-list" id="searchResults"></div>
@@ -424,23 +424,146 @@ async function fetchJSON(url, ms) {
   } finally { clearTimeout(timer); }
 }
 
+// =================== 本地常吃食物資料庫（台灣/中式為主）===================
+// [名稱, 每100g熱量, 蛋白g, 脂肪g, 碳水g, 一般份量g, 搜尋關鍵字]
+const LOCAL_RAW = [
+  // 主食
+  ["白飯",130,2.7,0.3,28,200,"rice 飯 米飯 白米"],
+  ["糙米飯",111,2.6,0.9,23,200,"brown rice 糙米"],
+  ["白粥",51,0.9,0.1,11,250,"congee 稀飯 粥"],
+  ["麵條(熟)",138,5,0.9,25,200,"noodle 麵 陽春麵 麵線"],
+  ["油麵",110,3.5,0.5,22,200,"noodle 油麵"],
+  ["水餃",230,8,9,28,150,"dumpling 餃子 餃"],
+  ["饅頭",223,7,1,47,90,"mantou bun 饅頭"],
+  ["包子",230,7,7,34,100,"baozi bun 肉包 包子"],
+  ["吐司",280,8,4,50,30,"toast bread 土司 麵包"],
+  ["白麵包",265,9,3.2,49,60,"bread 麵包"],
+  ["地瓜",90,1.3,0.2,20,150,"sweet potato 番薯 蕃薯"],
+  ["馬鈴薯",77,2,0.1,17,150,"potato 薯"],
+  ["燕麥",389,17,7,66,40,"oat oatmeal 麥片"],
+  ["飯糰",180,4,3,34,180,"rice ball onigiri 飯糰"],
+  ["蛋餅",200,7,9,22,120,"egg pancake 蛋餅"],
+  // 蛋白質
+  ["雞胸肉",165,31,3.6,0,120,"chicken breast 雞胸"],
+  ["雞腿",211,26,11,0,120,"chicken thigh 雞腿 棒腿"],
+  ["雞蛋",155,13,11,1.1,50,"egg 蛋 水煮蛋 荷包蛋"],
+  ["瘦豬肉",143,21,6,0,100,"pork 豬肉 里肌"],
+  ["五花肉",518,9,53,0,80,"pork belly 三層肉 五花"],
+  ["牛肉",250,26,15,0,100,"beef 牛"],
+  ["鮭魚",208,20,13,0,100,"salmon 鮭 三文魚"],
+  ["鯖魚",205,19,14,0,100,"mackerel 鯖魚 青花魚"],
+  ["蝦",99,24,0.3,0.2,100,"shrimp prawn 蝦"],
+  ["豆腐",76,8,4.8,1.9,150,"tofu 豆腐 板豆腐"],
+  ["雞蛋豆腐",78,5.5,5,2,150,"egg tofu 雞蛋豆腐"],
+  ["無糖豆漿",33,3.6,1.6,1.2,250,"soy milk 豆漿 無糖豆漿"],
+  ["有糖豆漿",55,2.8,1.5,7,250,"soy milk 豆漿 甜豆漿"],
+  ["牛奶",64,3.2,3.6,4.8,240,"milk 鮮奶 牛奶"],
+  ["無糖優格",61,3.5,3.3,4.7,150,"yogurt 優格 優酪"],
+  ["起司",402,25,33,1.3,20,"cheese 起士 乳酪"],
+  // 蔬菜
+  ["燙青菜",30,2.5,0.4,4,100,"vegetable greens 青菜 地瓜葉 青江菜 菠菜"],
+  ["花椰菜",34,2.8,0.4,7,100,"broccoli 花椰菜 綠花椰"],
+  ["高麗菜",25,1.3,0.1,5.8,100,"cabbage 高麗菜 包心菜"],
+  ["番茄",18,0.9,0.2,3.9,100,"tomato 番茄 西紅柿"],
+  ["玉米",86,3.2,1.2,19,100,"corn 玉米"],
+  ["菇類",22,3,0.3,3.3,100,"mushroom 香菇 金針菇 菇"],
+  ["紅蘿蔔",41,0.9,0.2,10,80,"carrot 紅蘿蔔 胡蘿蔔"],
+  // 水果
+  ["香蕉",89,1.1,0.3,23,120,"banana 香蕉"],
+  ["蘋果",52,0.3,0.2,14,150,"apple 蘋果"],
+  ["芭樂",68,2.6,0.9,14,150,"guava 芭樂 番石榴"],
+  ["橘子",47,0.9,0.1,12,150,"orange 橘子 柑橘"],
+  ["葡萄",67,0.6,0.4,17,100,"grape 葡萄"],
+  ["西瓜",30,0.6,0.2,8,200,"watermelon 西瓜"],
+  ["木瓜",43,0.5,0.3,11,150,"papaya 木瓜"],
+  // 外食/便當/小吃
+  ["滷肉飯",180,6,8,22,250,"braised pork rice 魯肉飯 滷肉飯"],
+  ["雞排",260,18,16,12,150,"fried chicken 雞排"],
+  ["鹽酥雞",280,17,18,13,120,"popcorn chicken 鹽酥雞 鹹酥雞"],
+  ["排骨便當",170,8,7,18,500,"lunchbox 便當 排骨飯"],
+  ["雞腿便當",175,9,8,17,500,"lunchbox 便當 雞腿飯"],
+  ["牛肉麵",110,7,4,12,500,"beef noodle 牛肉麵"],
+  ["炒飯",170,5,6,24,300,"fried rice 炒飯"],
+  ["炒麵",160,5,6,22,300,"fried noodle 炒麵"],
+  ["漢堡",250,12,12,24,200,"burger 漢堡"],
+  ["薯條",312,3.4,15,41,100,"fries 薯條"],
+  ["披薩",266,11,10,33,120,"pizza 披薩 比薩"],
+  ["三明治",250,10,12,26,150,"sandwich 三明治"],
+  ["關東煮",70,5,2,7,200,"oden 關東煮 黑輪"],
+  // 飲料/點心
+  ["黑咖啡",2,0.1,0,0,240,"coffee 黑咖啡 美式"],
+  ["珍珠奶茶",90,1,2,17,500,"bubble tea milk tea 珍奶 奶茶 珍珠奶茶"],
+  ["含糖飲料",42,0,0,11,350,"soda cola 汽水 可樂 飲料"],
+  ["運動飲料",26,0,0,6.4,500,"sports drink 運動飲料"],
+  ["洋芋片",536,7,35,53,30,"chips 洋芋片 薯片"],
+  ["巧克力",546,5,31,61,30,"chocolate 巧克力"],
+  ["餅乾",480,7,20,68,30,"biscuit cookie 餅乾"],
+  ["蛋糕",350,5,18,45,80,"cake 蛋糕"],
+  ["茶葉蛋",70,6.5,4.5,1,55,"tea egg 茶葉蛋"]
+];
+const LOCAL_FOODS = LOCAL_RAW.map(a => ({
+  name: a[0], thumb: "", serving: a[5], kw: a[6],
+  per100: { kcal: a[1], protein: a[2], fat: a[3], carb: a[4] }
+}));
+function searchLocal(q) {
+  const s = q.toLowerCase();
+  return LOCAL_FOODS.filter(f => (f.name + " " + f.kw).toLowerCase().includes(s));
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// 把一筆食物（本地或線上）渲染成可點選的列
+function makeRitem(p, isLocal) {
+  const el = document.createElement("div");
+  el.className = "ritem";
+  const badge = isLocal ? '<span style="background:var(--green);color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;margin-left:4px;vertical-align:1px">內建</span>' : '';
+  el.innerHTML = (p.thumb ? `<img src="${p.thumb}">` : `<div style="width:40px;height:40px;border-radius:6px;background:var(--bg)"></div>`) +
+    `<div class="t">${p.name}${badge}<small>每100g約 ${p.per100.kcal} kcal${p.serving ? '・一般份量 '+p.serving+'g' : ''}</small></div>`;
+  el.onclick = () => setupResultGrams(p, p.serving || 100);
+  return el;
+}
+
+// 主搜尋：先查本地，沒有才連線上
 async function doSearch() {
   const q = $("searchInput").value.trim();
   if (!q) return;
-  $("searchResults").innerHTML = '<p class="muted"><span class="spin" style="border-color:#ccc;border-top-color:#666"></span> 搜尋中…</p>';
+  const local = searchLocal(q);
+  if (local.length) {
+    $("searchResults").innerHTML = "";
+    local.forEach(p => $("searchResults").appendChild(makeRitem(p, true)));
+    const more = document.createElement("button");
+    more.className = "btn sec"; more.style.marginTop = "8px"; more.style.fontSize = "14px"; more.style.padding = "12px";
+    more.textContent = "🌐 找不到想要的？也查線上資料庫";
+    more.onclick = () => doOnlineSearch(q);
+    $("searchResults").appendChild(more);
+    return;
+  }
+  await doOnlineSearch(q);
+}
 
-  // 用有 CORS 的 cgi/search.pl（新版 search.openfoodfacts.org 無 CORS，瀏覽器會被擋）
-  let raw = [];
-  try {
-    const url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(q) +
-      "&search_simple=1&action=process&json=1&page_size=20" +
-      "&fields=product_name,product_name_zh,brands,nutriments,nutriscore_grade,image_small_url,code";
-    const j = await fetchJSON(url, 12000);
-    raw = j.products || [];
-  } catch (err) {
-    const reason = err.name === "AbortError" ? "伺服器逾時" : (/429/.test(err.message) ? "查詢太頻繁，請稍候再試" : "連線失敗");
-    $("searchResults").innerHTML = '<p class="err">搜尋暫時無法使用（' + reason +
-      '）。<br>可稍後再試，或改用「拍照」「條碼」「＋新增常吃」。</p>';
+// 線上搜尋（Open Food Facts）：限流嚴格，自動重試＋退避
+async function doOnlineSearch(q) {
+  const url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(q) +
+    "&search_simple=1&action=process&json=1&page_size=20" +
+    "&fields=product_name,product_name_zh,brands,nutriments,nutriscore_grade,image_small_url,code";
+  const MAX = 4;
+  let raw = null, lastErr = null;
+  for (let attempt = 1; attempt <= MAX; attempt++) {
+    $("searchResults").innerHTML = '<p class="muted"><span class="spin" style="border-color:#ccc;border-top-color:#666"></span> 查線上資料庫…' +
+      (attempt > 1 ? ` (自動重試 ${attempt}/${MAX})` : '') + '</p>';
+    try {
+      const j = await fetchJSON(url, 10000);
+      raw = j.products || [];
+      break;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < MAX) await sleep(700 * attempt + 300);
+    }
+  }
+  if (raw === null) {
+    const reason = lastErr && lastErr.name === "AbortError" ? "伺服器逾時" : "伺服器忙線";
+    $("searchResults").innerHTML = '<p class="err">線上搜尋暫時無法使用（' + reason +
+      '，已自動重試 ' + MAX + ' 次）。<br>請稍候再試，或改用「拍照」「條碼」「＋新增常吃」。</p>';
     return;
   }
   const items = raw.map(parseProduct).filter(p => p.per100.kcal > 0);
@@ -449,14 +572,7 @@ async function doSearch() {
     return;
   }
   $("searchResults").innerHTML = "";
-  items.forEach(p => {
-    const el = document.createElement("div");
-    el.className = "ritem";
-    el.innerHTML = (p.thumb ? `<img src="${p.thumb}">` : `<div style="width:40px"></div>`) +
-      `<div class="t">${p.name}<small>每100g約 ${p.per100.kcal} kcal</small></div>`;
-    el.onclick = () => setupResultGrams(p);
-    $("searchResults").appendChild(el);
-  });
+  items.forEach(p => $("searchResults").appendChild(makeRitem(p, false)));
 }
 function parseProduct(p) {
   const n = p.nutriments || {};
@@ -547,10 +663,11 @@ function setupResultPortion(d, thumb) {
     base:{ kcal:d.kcal||0, protein:d.protein||0, fat:d.fat||0, carb:d.carb||0 }, size:"medium", grams:100, manualKcal:null };
   buildResultCard();
 }
-// 模式 grams：base 為「每 100g」，用克數換算
-function setupResultGrams(p) {
+// 模式 grams：base 為「每 100g」，用克數換算（defGrams = 一般份量，預設100）
+function setupResultGrams(p, defGrams) {
   current = { mode:"grams", name:p.name, color:"yellow", reason:"依每100g營養 × 克數估算", thumb:p.thumb||"",
-    base:{ kcal:p.per100.kcal, protein:p.per100.protein, fat:p.per100.fat, carb:p.per100.carb }, size:"medium", grams:100, manualKcal:null };
+    base:{ kcal:p.per100.kcal, protein:p.per100.protein, fat:p.per100.fat, carb:p.per100.carb },
+    size:"medium", grams: defGrams || 100, manualKcal:null };
   buildResultCard();
 }
 function factor() { return current.mode === "grams" ? (current.grams/100) : PORTIONS[current.size].f; }
@@ -559,7 +676,7 @@ function effKcal() { return current.manualKcal !== null ? current.manualKcal : M
 function buildResultCard() {
   const portionUI = current.mode === "portion"
     ? `<div class="portion-row" id="portionRow">${Object.entries(PORTIONS).map(([k,v])=>`<button data-k="${k}" class="${k==='medium'?'on':''}">${v.label}</button>`).join("")}</div>`
-    : `<div class="grams-row">份量 <input type="number" id="gramsInput" value="100"> 克</div>`;
+    : `<div class="grams-row">份量 <input type="number" id="gramsInput" value="${current.grams}"> 克</div>`;
   $("result").innerHTML =
     `<div class="light-banner" id="rBanner"></div>
      <input class="name-input" id="rName" value="${(current.name||'').replace(/"/g,'&quot;')}">

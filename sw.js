@@ -1,4 +1,4 @@
-const CACHE = "fl-v9";
+const CACHE = "fl-v11";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon.svg"];
 
 self.addEventListener("install", e => {
