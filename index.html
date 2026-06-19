@@ -124,7 +124,7 @@
 <body>
 
 <div class="hero">
-  <h1><span class="dot" style="background:#86efac"></span><span class="dot" style="background:#fde047"></span><span class="dot" style="background:#fca5a5"></span> 食物紅綠燈 <span class="ver">v19</span></h1>
+  <h1><span class="dot" style="background:#86efac"></span><span class="dot" style="background:#fde047"></span><span class="dot" style="background:#fca5a5"></span> 食物紅綠燈 <span class="ver">v20</span></h1>
   <div class="tag">拍照・搜尋・條碼，紅綠黃燈陪你健康減重</div>
 </div>
 
@@ -198,8 +198,17 @@
 <!-- 意見回饋 -->
 <div class="card">
   <p class="section-title">💬 意見回饋</p>
+  <select id="fbType" class="fb-input" style="margin-bottom:8px">
+    <option value="建議">💡 建議</option>
+    <option value="Bug 回報">🐞 Bug 回報</option>
+    <option value="其他">💬 其他</option>
+  </select>
   <textarea id="fbMsg" class="fb-input" rows="3" placeholder="有什麼想法、建議或問題？歡迎告訴我們"></textarea>
   <input id="fbEmail" class="fb-input" style="margin-top:8px" placeholder="你的 Email（選填，方便回覆你）">
+  <label class="btn sec" for="fbFile" style="margin-top:8px">🖼️ 附上截圖（選填）</label>
+  <input type="file" id="fbFile" accept="image/*"
+    onchange="document.getElementById('fbFileName').textContent = this.files[0] ? ('已選擇：'+this.files[0].name) : ''">
+  <div id="fbFileName" class="muted" style="padding:4px 0 0;text-align:left"></div>
   <button class="btn" style="margin-top:10px" onclick="sendFeedback()">送出意見</button>
   <div id="fbStatus"></div>
 </div>
@@ -1009,16 +1018,59 @@ function addCurrent() {
 // ---- 意見回饋（Formsubmit.co，免後端）----
 // 使用 Formsubmit 隱藏代碼，原始碼不外露真實信箱
 const FEEDBACK_CODE = "8d43be10d184f161033f4aa6690686df";
+// 把圖片壓縮成 Blob（縮邊長、降畫質），避免附件過大
+function compressImage(file, maxSize) {
+  return new Promise(res => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement("canvas");
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(b => res(b), "image/jpeg", 0.7);
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
 async function sendFeedback() {
   const msg = $("fbMsg").value.trim();
   if (!msg) { $("fbStatus").innerHTML = '<p class="err">請先輸入意見內容。</p>'; return; }
+  const type = $("fbType").value;
   const email = $("fbEmail").value.trim();
+  const file = $("fbFile").files[0];
   $("fbStatus").innerHTML = '<p class="muted"><span class="spin" style="border-color:#ccc;border-top-color:#666"></span> 送出中…</p>';
+  const clear = () => { $("fbMsg").value = ""; $("fbEmail").value = ""; $("fbFile").value = ""; $("fbFileName").textContent = ""; };
   try {
+    if (file) {
+      // 有截圖 → 走標準附件上傳（AJAX 端點不支援檔案）
+      const blob = await compressImage(file, 1200);
+      const fd = new FormData();
+      fd.append("意見類型", type);
+      fd.append("意見內容", msg);
+      fd.append("回覆信箱", email || "(未提供)");
+      if (email) fd.append("_replyto", email);
+      fd.append("_subject", "🍱 食物紅綠燈 意見回饋（" + type + "・含截圖）");
+      fd.append("_captcha", "false");
+      fd.append("_template", "table");
+      fd.append("screenshot", blob, "screenshot.jpg");
+      // 標準端點無 CORS，用 no-cors 送出（無法讀回應，無網路錯誤即視為成功）
+      await fetch("https://formsubmit.co/" + FEEDBACK_CODE, { method: "POST", mode: "no-cors", body: fd });
+      clear();
+      $("fbStatus").innerHTML = '<p class="muted">✅ 感謝你的意見，已送出（含截圖）！</p>';
+      setTimeout(() => $("fbStatus").innerHTML = "", 4000);
+      return;
+    }
+    // 純文字 → 走 AJAX，可確認送出結果
     const body = {
+      意見類型: type,
       意見內容: msg,
       回覆信箱: email || "(未提供)",
-      _subject: "🍱 食物紅綠燈 App 意見回饋",
+      _subject: "🍱 食物紅綠燈 意見回饋（" + type + "）",
       _template: "table",
       _captcha: "false"
     };
@@ -1030,7 +1082,7 @@ async function sendFeedback() {
     });
     const j = await r.json().catch(() => ({}));
     if (r.ok && (j.success === "true" || j.success === true)) {
-      $("fbMsg").value = ""; $("fbEmail").value = "";
+      clear();
       $("fbStatus").innerHTML = '<p class="muted">✅ 感謝你的意見，已送出！</p>';
       setTimeout(() => $("fbStatus").innerHTML = "", 4000);
     } else {
