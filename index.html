@@ -41,6 +41,9 @@
   .total-card { text-align: center; background: linear-gradient(180deg,#ffffff 0%, #f4faf6 100%); }
   .total-num { font-size: 44px; font-weight: 800; line-height: 1.1; color: var(--green-d); letter-spacing: -1px; }
   .total-label { color: var(--sub); font-size: 13px; margin-top: 4px; }
+  .macro-totals { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+  .macro-totals .mt { background: var(--bg); border-radius: 10px; padding: 6px 12px; font-size: 12px; color: var(--sub); }
+  .macro-totals .mt b { display: block; font-size: 15px; color: var(--ink); font-weight: 700; }
   .goal-row { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; font-size: 13px; color: var(--sub); }
   .goal-row input { width: 70px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; text-align: center; font-size: 13px; }
   .bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 12px; }
@@ -101,6 +104,8 @@
   .keyrow input { flex: 1; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
   details summary { cursor: pointer; color: var(--sub); font-size: 13px; }
   .err { color: var(--red); font-size: 13px; margin-top: 8px; }
+  .fb-input { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; font-family: inherit; color: var(--ink); resize: vertical; }
+  .fb-input:focus { outline: none; border-color: var(--green); }
   .section-title { font-size: 14px; font-weight: 700; margin: 0 0 12px; color: var(--ink); display: flex; align-items: center; gap: 6px; }
   .tabs { display: flex; gap: 6px; margin-bottom: 6px; background: #eef3f0; padding: 5px; border-radius: 14px; }
   .tabs button { flex: 1; padding: 10px 4px; border: none; background: transparent; border-radius: 10px; font-size: 13px; cursor: pointer; color: var(--sub); font-weight: 600; transition: all .15s; }
@@ -119,7 +124,7 @@
 <body>
 
 <div class="hero">
-  <h1><span class="dot" style="background:#86efac"></span><span class="dot" style="background:#fde047"></span><span class="dot" style="background:#fca5a5"></span> 食物紅綠燈 <span class="ver">v15</span></h1>
+  <h1><span class="dot" style="background:#86efac"></span><span class="dot" style="background:#fde047"></span><span class="dot" style="background:#fca5a5"></span> 食物紅綠燈 <span class="ver">v18</span></h1>
   <div class="tag">拍照・搜尋・條碼，紅綠黃燈陪你健康減重</div>
 </div>
 
@@ -127,6 +132,7 @@
 <div class="card total-card">
   <div class="total-num" id="totalKcal">0</div>
   <div class="total-label" id="todayLabel">今天攝取熱量 (kcal)</div>
+  <div class="macro-totals" id="macroTotals"></div>
   <div class="bar"><div id="goalBar" style="width:0%"></div></div>
   <div class="goal-row">每日目標 <input type="number" id="goalInput" value="1500"> kcal</div>
   <button class="back-today" id="backToday" onclick="goToday()">↩ 回到今天</button>
@@ -189,6 +195,15 @@
   <div id="log"><p class="muted">還沒有記錄。</p></div>
 </div>
 
+<!-- 意見回饋 -->
+<div class="card">
+  <p class="section-title">💬 意見回饋</p>
+  <textarea id="fbMsg" class="fb-input" rows="3" placeholder="有什麼想法、建議或問題？歡迎告訴我們"></textarea>
+  <input id="fbEmail" class="fb-input" style="margin-top:8px" placeholder="你的 Email（選填，方便回覆你）">
+  <button class="btn" style="margin-top:10px" onclick="sendFeedback()">送出意見</button>
+  <div id="fbStatus"></div>
+</div>
+
 <!-- 設定 -->
 <div class="card">
   <details>
@@ -202,6 +217,7 @@
   </details>
 </div>
 
+<script src="foods.js" charset="utf-8"></script>
 <script>
 const MODEL = "gpt-4o-mini";
 const $ = id => document.getElementById(id);
@@ -251,9 +267,16 @@ function lightForKcal(kcal) { return kcal < 150 ? "green" : (kcal <= 400 ? "yell
 function renderAll() { renderTotal(); renderLog(); renderChart(); renderFavs(); }
 
 function renderTotal() {
+  const log = loadDay(viewDate);
   const total = dayTotal(viewDate);
   $("totalKcal").textContent = total;
   $("todayLabel").textContent = (isToday(viewDate) ? "今天" : dateLabel(viewDate)) + "攝取熱量 (kcal)";
+  // 當日三大營養素總量
+  const sum = k => log.reduce((s, x) => s + (x[k] || 0), 0);
+  $("macroTotals").innerHTML =
+    `<div class="mt"><b>${sum('p')}g</b>蛋白質</div>` +
+    `<div class="mt"><b>${sum('c')}g</b>碳水</div>` +
+    `<div class="mt"><b>${sum('fa')}g</b>脂肪</div>`;
   $("backToday").style.display = isToday(viewDate) ? "none" : "inline";
   const pct = Math.min(100, Math.round(total / goal() * 100));
   const bar = $("goalBar");
@@ -341,7 +364,7 @@ function addFavPrompt() {
 }
 function quickAddFav(f) {
   const log = loadDay(viewDate);
-  log.push({ name: f.name, portion: "常吃", kcal: f.kcal, color: f.color });
+  log.push({ name: f.name, portion: "常吃", kcal: f.kcal, color: f.color, p: f.p||0, fa: f.fa||0, c: f.c||0 });
   saveDay(viewDate, log);
   $("status").innerHTML = `<p class="muted">✅ 已加入「${f.name}」</p>`;
   setTimeout(()=>$("status").innerHTML="", 1500);
@@ -475,6 +498,30 @@ const LOCAL_RAW = [
   ["葡萄",67,0.6,0.4,17,100,"grape 葡萄"],
   ["西瓜",30,0.6,0.2,8,200,"watermelon 西瓜"],
   ["木瓜",43,0.5,0.3,11,150,"papaya 木瓜"],
+  ["榴槤",132,2.7,1.9,29.7,120,"durian 榴槤 榴蓮"],
+  ["芒果",50,0.7,0.2,13,150,"mango 芒果"],
+  ["鳳梨",57,0.7,0.1,15.1,150,"pineapple 鳳梨 旺來"],
+  ["火龍果",51,1.1,0.4,12.3,150,"dragon fruit 火龍果 紅龍果"],
+  ["奇異果",56,1.1,0.3,14,100,"kiwi 奇異果 奇異"],
+  ["葡萄柚",37,0.7,0.2,9.2,150,"grapefruit 葡萄柚"],
+  ["水梨",34,0.4,0,9,150,"pear 水梨 梨"],
+  ["蓮霧",33,0.3,0.3,8.1,150,"蓮霧 wax apple"],
+  ["釋迦",104,2.2,0.1,26.6,120,"釋迦 sugar apple"],
+  ["草莓",39,1,0.2,9.3,100,"strawberry 草莓"],
+  ["荔枝",66,0.9,0.3,16.5,100,"lychee 荔枝"],
+  ["龍眼",72,1.1,0.4,18,80,"longan 龍眼"],
+  ["柚子",38,0.7,0.1,9.6,150,"pomelo 柚子 文旦"],
+  ["哈密瓜",28,0.7,0.1,6.9,200,"melon 哈密瓜"],
+  ["桃子",39,0.9,0.3,10,150,"peach 桃子 水蜜桃"],
+  ["櫻桃",75,1.2,0.3,19.1,100,"cherry 櫻桃"],
+  ["楊桃",32,0.5,0.1,8.2,150,"楊桃 star fruit"],
+  ["百香果",66,2.2,0.4,15,100,"passion fruit 百香果"],
+  ["柿子",68,0.5,0.2,17,150,"persimmon 柿子 甜柿"],
+  ["酪梨",65,1.6,3.7,7.9,100,"avocado 酪梨"],
+  ["藍莓",53,0.5,0.3,13.6,100,"blueberry 藍莓"],
+  ["桑椹",43,1,0.4,9.8,100,"mulberry 桑椹 桑葚"],
+  ["枇杷",38,0.3,0.2,9.8,150,"loquat 枇杷"],
+  ["李子",48,0.7,0.4,11.7,120,"plum 李子"],
   // 自煮食材 — 衛福部 TFND 官方每100g數值（蔬菜）
   ["小黃瓜",14,0.7,0.1,2.9,100,"cucumber 小黃瓜 胡瓜 花胡瓜"],
   ["菠菜",18,2.2,0.3,2.4,100,"spinach 菠菜"],
@@ -697,13 +744,33 @@ const LOCAL_RAW = [
   ["蛋糕",350,5,18,45,80,"cake 蛋糕"],
   ["茶葉蛋",70,6.5,4.5,1,55,"tea egg 茶葉蛋"]
 ];
-const LOCAL_FOODS = LOCAL_RAW.map(a => ({
-  name: a[0], thumb: "", serving: a[5], kw: a[6],
+// 精選清單（常見、好名稱、實際份量）優先
+const CURATED = LOCAL_RAW.map(a => ({
+  name: a[0], thumb: "", serving: a[5], kw: a[6], curated: true,
   per100: { kcal: a[1], protein: a[2], fat: a[3], carb: a[4] }
 }));
+// 衛福部 TFND 全資料庫（foods.js）作補充，排除已在精選的同名項
+const curatedNames = new Set(CURATED.map(f => f.name));
+const TFND = (window.TFND_FOODS || [])
+  .filter(a => !curatedNames.has(a[0]))
+  .map(a => ({ name: a[0], thumb: "", serving: 100, kw: a[5] || "",
+    per100: { kcal: a[1], protein: a[2], fat: a[3], carb: a[4] } }));
+const LOCAL_FOODS = CURATED.concat(TFND);
+
+const SEARCH_LIMIT = 40;
 function searchLocal(q) {
   const s = q.toLowerCase();
-  return LOCAL_FOODS.filter(f => (f.name + " " + f.kw).toLowerCase().includes(s));
+  const hits = LOCAL_FOODS.filter(f => (f.name + " " + f.kw).toLowerCase().includes(s));
+  // 排序：完全相符 > 名稱開頭相符 > 精選 > 其他（同分維持原順序）
+  const score = f => {
+    const n = f.name.toLowerCase();
+    if (n === s) return 0;
+    if (n.startsWith(s)) return 1;
+    if (f.curated) return 2;
+    return 3;
+  };
+  return hits.map((f, i) => [f, i]).sort((a, b) => score(a[0]) - score(b[0]) || a[1] - b[1])
+    .map(x => x[0]).slice(0, SEARCH_LIMIT);
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -900,7 +967,9 @@ function buildResultCard() {
   }
   $("addBtn").onclick = addCurrent;
   $("favBtn").onclick = () => {
-    const a = loadFavs(); a.push({ name: current.name, kcal: effKcal(), color: current.color });
+    const f = factor();
+    const a = loadFavs(); a.push({ name: current.name, kcal: effKcal(), color: current.color,
+      p: Math.round(current.base.protein*f), fa: Math.round(current.base.fat*f), c: Math.round(current.base.carb*f) });
     saveFavs(a); renderFavs();
     $("favBtn").textContent = "✅ 已存為常吃"; $("favBtn").disabled = true;
   };
@@ -926,13 +995,49 @@ function updateBanner(k) {
 function addCurrent() {
   const log = loadDay(viewDate);
   const portionLabel = current.mode === "grams" ? (current.grams + "g") : PORTIONS[current.size].label;
-  log.push({ name: current.name, portion: portionLabel, kcal: effKcal(), color: current.color, thumb: current.thumb });
+  const f = factor();
+  log.push({ name: current.name, portion: portionLabel, kcal: effKcal(), color: current.color, thumb: current.thumb,
+    p: Math.round(current.base.protein * f), fa: Math.round(current.base.fat * f), c: Math.round(current.base.carb * f) });
   saveDay(viewDate, log);
   current = null;
   $("result").innerHTML = "";
   $("status").innerHTML = '<p class="muted">✅ 已加入記錄</p>';
   setTimeout(()=>$("status").innerHTML="", 1500);
   renderAll();
+}
+
+// ---- 意見回饋（Formsubmit.co，免後端）----
+const FEEDBACK_EMAIL = "ben8005@gmail.com";
+async function sendFeedback() {
+  const msg = $("fbMsg").value.trim();
+  if (!msg) { $("fbStatus").innerHTML = '<p class="err">請先輸入意見內容。</p>'; return; }
+  const email = $("fbEmail").value.trim();
+  $("fbStatus").innerHTML = '<p class="muted"><span class="spin" style="border-color:#ccc;border-top-color:#666"></span> 送出中…</p>';
+  try {
+    const body = {
+      意見內容: msg,
+      回覆信箱: email || "(未提供)",
+      _subject: "🍱 食物紅綠燈 App 意見回饋",
+      _template: "table",
+      _captcha: "false"
+    };
+    if (email) body._replyto = email;
+    const r = await fetch("https://formsubmit.co/ajax/" + FEEDBACK_EMAIL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && (j.success === "true" || j.success === true)) {
+      $("fbMsg").value = ""; $("fbEmail").value = "";
+      $("fbStatus").innerHTML = '<p class="muted">✅ 感謝你的意見，已送出！</p>';
+      setTimeout(() => $("fbStatus").innerHTML = "", 4000);
+    } else {
+      throw new Error(j.message || "HTTP " + r.status);
+    }
+  } catch (err) {
+    $("fbStatus").innerHTML = '<p class="err">送出失敗，請檢查網路稍後再試。（' + (err.message || err) + '）</p>';
+  }
 }
 
 // ---- Service Worker ----
