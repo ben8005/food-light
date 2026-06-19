@@ -124,7 +124,7 @@
 <body>
 
 <div class="hero">
-  <h1><span class="dot" style="background:#86efac"></span><span class="dot" style="background:#fde047"></span><span class="dot" style="background:#fca5a5"></span> 食物紅綠燈 <span class="ver">v18</span></h1>
+  <h1><span class="dot" style="background:#86efac"></span><span class="dot" style="background:#fde047"></span><span class="dot" style="background:#fca5a5"></span> 食物紅綠燈 <span class="ver">v19</span></h1>
   <div class="tag">拍照・搜尋・條碼，紅綠黃燈陪你健康減重</div>
 </div>
 
@@ -1007,7 +1007,8 @@ function addCurrent() {
 }
 
 // ---- 意見回饋（Formsubmit.co，免後端）----
-const FEEDBACK_EMAIL = "ben8005@gmail.com";
+// 使用 Formsubmit 隱藏代碼，原始碼不外露真實信箱
+const FEEDBACK_CODE = "8d43be10d184f161033f4aa6690686df";
 async function sendFeedback() {
   const msg = $("fbMsg").value.trim();
   if (!msg) { $("fbStatus").innerHTML = '<p class="err">請先輸入意見內容。</p>'; return; }
@@ -1022,7 +1023,7 @@ async function sendFeedback() {
       _captcha: "false"
     };
     if (email) body._replyto = email;
-    const r = await fetch("https://formsubmit.co/ajax/" + FEEDBACK_EMAIL, {
+    const r = await fetch("https://formsubmit.co/ajax/" + FEEDBACK_CODE, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify(body)
