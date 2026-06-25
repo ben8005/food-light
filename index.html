@@ -88,6 +88,7 @@
   .fav { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 99px; border: 1px solid var(--line); background: #fff; font-size: 14px; cursor: pointer; }
   .fav .fdot { width: 9px; height: 9px; border-radius: 50%; }
   .fav .fx { color: var(--sub); font-size: 12px; margin-left: 2px; }
+  .fav .fedit { color: var(--green-d); font-size: 13px; margin-left: 4px; }
   .fav.add { color: var(--green); border-style: dashed; }
   /* 記錄 / 圖表 */
   .log-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
@@ -106,6 +107,8 @@
   .err { color: var(--red); font-size: 13px; margin-top: 8px; }
   .fb-input { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; font-family: inherit; color: var(--ink); resize: vertical; }
   .fb-input:focus { outline: none; border-color: var(--green); }
+  .ff-macros { display: flex; gap: 6px; margin-top: 8px; }
+  .ff-macros .fb-input { padding: 10px 8px; font-size: 13px; }
   .section-title { font-size: 14px; font-weight: 700; margin: 0 0 12px; color: var(--ink); display: flex; align-items: center; gap: 6px; }
   .tabs { display: flex; gap: 6px; margin-bottom: 6px; background: #eef3f0; padding: 5px; border-radius: 14px; }
   .tabs button { flex: 1; padding: 10px 4px; border: none; background: transparent; border-radius: 10px; font-size: 13px; cursor: pointer; color: var(--sub); font-weight: 600; transition: all .15s; }
@@ -124,7 +127,7 @@
 <body>
 
 <div class="hero">
-  <h1><span class="dot" style="background:#86efac"></span><span class="dot" style="background:#fde047"></span><span class="dot" style="background:#fca5a5"></span> 食物紅綠燈 <span class="ver">v20</span></h1>
+  <h1><span class="dot" style="background:#86efac"></span><span class="dot" style="background:#fde047"></span><span class="dot" style="background:#fca5a5"></span> 食物紅綠燈 <span class="ver">v23</span></h1>
   <div class="tag">拍照・搜尋・條碼，紅綠黃燈陪你健康減重</div>
 </div>
 
@@ -177,6 +180,7 @@
   <!-- 常吃清單 -->
   <div class="pane" id="pane-fav">
     <div class="favs" id="favs"></div>
+    <div id="favForm"></div>
   </div>
 
   <div id="status"></div>
@@ -350,14 +354,15 @@ function renderFavs() {
   favs.forEach((f, i) => {
     const el = document.createElement("div");
     el.className = "fav";
-    el.innerHTML = `<span class="fdot" style="background:var(--${f.color})"></span>${f.name} ${f.kcal}kcal<span class="fx">✕</span>`;
+    el.innerHTML = `<span class="fdot" style="background:var(--${f.color})"></span>${f.name} ${f.kcal}kcal<span class="fedit">✎</span><span class="fx">✕</span>`;
+    el.querySelector(".fedit").onclick = (ev) => { ev.stopPropagation(); showFavForm(i); };
     el.querySelector(".fx").onclick = (ev) => { ev.stopPropagation(); const a = loadFavs(); a.splice(i,1); saveFavs(a); renderFavs(); };
     el.onclick = () => quickAddFav(f);
     box.appendChild(el);
   });
   const add = document.createElement("div");
   add.className = "fav add"; add.textContent = "＋ 新增常吃";
-  add.onclick = addFavPrompt;
+  add.onclick = () => showFavForm();
   box.appendChild(add);
   if (!favs.length) {
     const tip = document.createElement("p");
@@ -366,10 +371,45 @@ function renderFavs() {
     box.appendChild(tip);
   }
 }
-function addFavPrompt() {
-  const name = prompt("食物名稱："); if (!name) return;
-  const kcal = parseInt(prompt("一份熱量 (kcal)：")); if (isNaN(kcal)) return;
-  const a = loadFavs(); a.push({ name, kcal, color: lightForKcal(kcal) }); saveFavs(a); renderFavs();
+let favEditIdx = null;
+// idx 為數字 → 編輯該筆；否則為新增
+function showFavForm(idx) {
+  favEditIdx = (typeof idx === "number") ? idx : null;
+  const f = favEditIdx !== null ? (loadFavs()[favEditIdx] || {}) : {};
+  const val = v => (v == null ? "" : v);
+  const esc = s => String(s).replace(/"/g, "&quot;");
+  $("favForm").innerHTML =
+    `<div class="fav-form">
+       <p class="muted" style="text-align:left;padding:0 0 6px;font-weight:600;color:var(--ink)">${favEditIdx!==null ? "✎ 編輯常吃" : "＋ 新增常吃"}</p>
+       <input id="ffName" class="fb-input" placeholder="食物名稱" value="${esc(val(f.name))}">
+       <input id="ffKcal" class="fb-input" type="number" inputmode="numeric" placeholder="一份熱量 (kcal)" style="margin-top:8px" value="${val(f.kcal)}">
+       <div class="ff-macros">
+         <input id="ffP" class="fb-input" type="number" inputmode="decimal" placeholder="蛋白質 g" value="${val(f.p)}">
+         <input id="ffC" class="fb-input" type="number" inputmode="decimal" placeholder="碳水 g" value="${val(f.c)}">
+         <input id="ffF" class="fb-input" type="number" inputmode="decimal" placeholder="脂肪 g" value="${val(f.fa)}">
+       </div>
+       <p class="muted" style="text-align:left;padding:4px 0 0">營養素為選填，不填則記為 0。</p>
+       <div style="display:flex;gap:8px;margin-top:8px">
+         <button class="btn" onclick="saveFavForm()">儲存</button>
+         <button class="btn sec" onclick="closeFavForm()">取消</button>
+       </div>
+       <div id="ffErr"></div>
+     </div>`;
+  $("ffName").focus();
+}
+function closeFavForm() { favEditIdx = null; $("favForm").innerHTML = ""; }
+function saveFavForm() {
+  const name = $("ffName").value.trim();
+  const kcal = parseInt($("ffKcal").value);
+  if (!name) { $("ffErr").innerHTML = '<p class="err">請輸入食物名稱。</p>'; return; }
+  if (isNaN(kcal)) { $("ffErr").innerHTML = '<p class="err">請輸入熱量 (kcal)。</p>'; return; }
+  const entry = { name, kcal, color: lightForKcal(kcal),
+    p: parseFloat($("ffP").value) || 0, c: parseFloat($("ffC").value) || 0, fa: parseFloat($("ffF").value) || 0 };
+  const a = loadFavs();
+  if (favEditIdx !== null) a[favEditIdx] = entry; else a.push(entry);
+  saveFavs(a);
+  closeFavForm();
+  renderFavs();
 }
 function quickAddFav(f) {
   const log = loadDay(viewDate);
@@ -751,7 +791,48 @@ const LOCAL_RAW = [
   ["巧克力",546,5,31,61,30,"chocolate 巧克力"],
   ["餅乾",480,7,20,68,30,"biscuit cookie 餅乾"],
   ["蛋糕",350,5,18,45,80,"cake 蛋糕"],
-  ["茶葉蛋",70,6.5,4.5,1,55,"tea egg 茶葉蛋"]
+  ["茶葉蛋",70,6.5,4.5,1,55,"tea egg 茶葉蛋"],
+  // 連鎖速食 — 官方公開營養（整份；結果卡以「份」計）
+  // 麥當勞 McDonald's
+  ["麥當勞｜大麥克",602,28,32,51,100,"mcdonald 麥當勞 big mac 大麥克"],
+  ["麥當勞｜雙層牛肉吉事堡",475,26,26,35,100,"mcdonald 麥當勞 double cheeseburger 吉事堡"],
+  ["麥當勞｜麥香雞",393,14,17,45,100,"mcdonald 麥當勞 mcchicken 麥香雞"],
+  ["麥當勞｜麥香魚",343,15,15,36,100,"mcdonald 麥當勞 filet fish 麥香魚"],
+  ["麥當勞｜嫩煎雞腿堡",391,25,13,43,100,"mcdonald 麥當勞 chicken burger 雞腿堡"],
+  ["麥當勞｜勁辣雞腿堡",537,23,28,49,100,"mcdonald 麥當勞 spicy chicken 勁辣"],
+  ["麥當勞｜麥克雞塊6塊",266,16,17,13,100,"mcdonald 麥當勞 mcnuggets 雞塊"],
+  ["麥當勞｜麥克雞塊10塊",444,26,28,22,100,"mcdonald 麥當勞 mcnuggets 雞塊"],
+  ["麥當勞｜中薯",346,5,16,45,100,"mcdonald 麥當勞 fries 薯條"],
+  ["麥當勞｜大薯",473,7,23,63,100,"mcdonald 麥當勞 fries 薯條"],
+  ["麥當勞｜可樂(中)",210,0,0,53,100,"mcdonald 麥當勞 coke 可樂"],
+  ["麥當勞｜玉米湯",93,2,2,17,100,"mcdonald 麥當勞 corn soup 玉米湯"],
+  // 肯德基 KFC（熱量官方，三大營養素為估值）
+  ["肯德基｜咔啦脆雞(雞腿)",236,17,14,11,100,"kfc 肯德基 crispy chicken 炸雞 咔啦"],
+  ["肯德基｜上校薄皮嫩雞(棒腿)",167,16,9,4,100,"kfc 肯德基 chicken 棒腿"],
+  ["肯德基｜上校雞塊4塊",197,12,11,12,100,"kfc 肯德基 nuggets 雞塊"],
+  ["肯德基｜勁爆雞米花(大)",183,12,9,14,100,"kfc 肯德基 popcorn chicken 雞米花"],
+  ["肯德基｜蛋撻",182,3,9,22,100,"kfc 肯德基 egg tart 蛋塔 蛋撻"],
+  ["肯德基｜香酥脆薯(中)",185,2.5,9,24,100,"kfc 肯德基 fries 薯條"],
+  ["肯德基｜玉米濃湯",126,3,4,19,100,"kfc 肯德基 corn soup 玉米濃湯"],
+  ["肯德基｜經典玉米",86,3,1,19,100,"kfc 肯德基 corn 玉米"],
+  // 摩斯漢堡 MOS
+  ["摩斯｜摩斯漢堡(牛)",434,17.8,23.5,38,100,"mos 摩斯 burger 漢堡"],
+  ["摩斯｜元氣牛肉珍珠堡",657,26,32,66.5,100,"mos 摩斯 rice burger 珍珠堡 米漢堡"],
+  ["摩斯｜薑燒珍珠堡",372,15.4,6.8,62.2,100,"mos 摩斯 rice burger 珍珠堡 米漢堡 薑燒"],
+  ["摩斯｜杏鮑菇珍珠堡",348,8.2,3.2,71.5,100,"mos 摩斯 rice burger 珍珠堡 蔬食"],
+  ["摩斯｜摩斯雞塊6個",290,19.4,17.5,13.6,100,"mos 摩斯 nuggets 雞塊"],
+  ["摩斯｜黃金薯條",456,4.4,26.2,50.6,100,"mos 摩斯 fries 薯條"],
+  ["摩斯｜冰紅茶(M)",111,0,0,22.2,100,"mos 摩斯 black tea 紅茶"],
+  ["摩斯｜鮮蔬沙拉",109,3.1,6.8,9.4,100,"mos 摩斯 salad 沙拉"],
+  // Subway（6吋，小麥麵包、不含醬）
+  ["Subway｜嫩切雞肉6吋",300,20,6.3,41,100,"subway 潛艇堡 chicken 雞"],
+  ["Subway｜火雞胸肉6吋",267,18,4,38,100,"subway 潛艇堡 turkey 火雞"],
+  ["Subway｜照燒雞肉6吋",362,27,7.3,46,100,"subway 潛艇堡 teriyaki 照燒"],
+  ["Subway｜鮮嫩雞柳6吋",324,25,7.1,39,100,"subway 潛艇堡 chicken tender 雞柳"],
+  ["Subway｜鮪魚6吋",507,22,29.1,39,100,"subway 潛艇堡 tuna 鮪魚"],
+  ["Subway｜義大利牛肉丸6吋",383,20,11.7,47,100,"subway 潛艇堡 meatball 肉丸"],
+  ["Subway｜義式經典6吋",409,22,16.7,42,100,"subway 潛艇堡 italian bmt"],
+  ["Subway｜燒烤牛肉6吋",346,21,7.1,40,100,"subway 潛艇堡 beef 牛肉"]
 ];
 // 精選清單（常見、好名稱、實際份量）優先
 const CURATED = LOCAL_RAW.map(a => ({
@@ -936,19 +1017,33 @@ function setupResultPortion(d, thumb) {
   buildResultCard();
 }
 // 模式 grams：base 為「每 100g」，用克數換算（defGrams = 一般份量，預設100）
+// 連鎖速食（名稱含「｜」）為整份餐點 → 改用「份」模式，base 即一份營養
 function setupResultGrams(p, defGrams) {
-  current = { mode:"grams", name:p.name, color:"yellow", reason:"依每100g營養 × 克數估算", thumb:p.thumb||"",
-    base:{ kcal:p.per100.kcal, protein:p.per100.protein, fat:p.per100.fat, carb:p.per100.carb },
-    size:"medium", grams: defGrams || 100, manualKcal:null };
+  const perServing = (p.name || "").includes("｜");
+  current = { name:p.name, color:"yellow", thumb:p.thumb||"", size:"medium", manualKcal:null,
+    base:{ kcal:p.per100.kcal, protein:p.per100.protein, fat:p.per100.fat, carb:p.per100.carb } };
+  if (perServing) {
+    current.mode = "serving"; current.count = 1; current.reason = "整份餐點，可調份數";
+  } else {
+    current.mode = "grams"; current.grams = defGrams || 100; current.reason = "依每100g營養 × 克數估算";
+  }
   buildResultCard();
 }
-function factor() { return current.mode === "grams" ? (current.grams/100) : PORTIONS[current.size].f; }
+function factor() {
+  if (current.mode === "grams") return current.grams / 100;
+  if (current.mode === "serving") return current.count;
+  return PORTIONS[current.size].f;
+}
 function effKcal() { return current.manualKcal !== null ? current.manualKcal : Math.round(current.base.kcal * factor()); }
 
 function buildResultCard() {
-  const portionUI = current.mode === "portion"
-    ? `<div class="portion-row" id="portionRow">${Object.entries(PORTIONS).map(([k,v])=>`<button data-k="${k}" class="${k==='medium'?'on':''}">${v.label}</button>`).join("")}</div>`
-    : `<div class="grams-row">份量 <input type="number" id="gramsInput" value="${current.grams}"> 克</div>`;
+  let portionUI;
+  if (current.mode === "portion")
+    portionUI = `<div class="portion-row" id="portionRow">${Object.entries(PORTIONS).map(([k,v])=>`<button data-k="${k}" class="${k==='medium'?'on':''}">${v.label}</button>`).join("")}</div>`;
+  else if (current.mode === "serving")
+    portionUI = `<div class="grams-row">份量 <input type="number" id="countInput" value="${current.count}" step="1" min="0"> 份</div>`;
+  else
+    portionUI = `<div class="grams-row">份量 <input type="number" id="gramsInput" value="${current.grams}"> 克</div>`;
   $("result").innerHTML =
     `<div class="light-banner" id="rBanner"></div>
      <input class="name-input" id="rName" value="${(current.name||'').replace(/"/g,'&quot;')}">
@@ -971,6 +1066,8 @@ function buildResultCard() {
       $("portionRow").querySelectorAll("button").forEach(x => x.classList.toggle("on", x===b));
       renderResultNumbers();
     });
+  } else if (current.mode === "serving") {
+    $("countInput").oninput = e => { current.count = parseFloat(e.target.value) || 0; current.manualKcal = null; renderResultNumbers(); };
   } else {
     $("gramsInput").oninput = e => { current.grams = parseInt(e.target.value) || 0; current.manualKcal = null; renderResultNumbers(); };
   }
@@ -1003,7 +1100,9 @@ function updateBanner(k) {
 }
 function addCurrent() {
   const log = loadDay(viewDate);
-  const portionLabel = current.mode === "grams" ? (current.grams + "g") : PORTIONS[current.size].label;
+  const portionLabel = current.mode === "grams" ? (current.grams + "g")
+    : current.mode === "serving" ? (current.count + "份")
+    : PORTIONS[current.size].label;
   const f = factor();
   log.push({ name: current.name, portion: portionLabel, kcal: effKcal(), color: current.color, thumb: current.thumb,
     p: Math.round(current.base.protein * f), fa: Math.round(current.base.fat * f), c: Math.round(current.base.carb * f) });
